@@ -6,6 +6,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
 import { usePosts } from '@/hooks/usePosts';
 import { Button } from '@/components/ui/button';
+import heroLogo from '@/assets/hero-logo.png';
 
 export default function Feed() {
   const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
@@ -39,18 +40,28 @@ export default function Feed() {
           >
             VinkedIn Connect
           </motion.h2>
+          
+          <motion.img
+            src={heroLogo}
+            alt="VinkedIn Logo"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="mx-auto my-4 h-24 w-24 md:h-32 md:w-32 object-contain"
+          />
+
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-2 text-sm text-white/80 md:text-base"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-sm text-white/80 md:text-base"
           >
             Tu hub de contenidos profesionales. Comparte, conecta y crece.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
             <Button
               onClick={() => setIsCreateModalOpen(true)}
