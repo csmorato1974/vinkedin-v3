@@ -28,6 +28,41 @@ export default function Feed() {
         </div>
       </header>
 
+      {/* Hero Section */}
+      <section className="w-full bg-gradient-brand px-4 py-8 md:py-12">
+        <div className="mx-auto max-w-3xl text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-2xl font-bold text-white md:text-3xl lg:text-4xl"
+          >
+            VinkedIn Connect
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-2 text-sm text-white/80 md:text-base"
+          >
+            Tu hub de contenidos profesionales. Comparte, conecta y crece.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              size="lg"
+              className="mt-6 bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
+            >
+              Crear primer post
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Content */}
       <div className="w-full md:mx-auto md:max-w-2xl md:px-4 md:py-4">
         {loading ? (
