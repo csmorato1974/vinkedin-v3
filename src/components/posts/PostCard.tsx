@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, MoreHorizontal, Pencil, Trash2, Mail } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -28,17 +28,17 @@ import { getOrCreateConversation } from '@/hooks/useConversation';
 import type { Post } from '@/types';
 import { ImageCarousel } from './ImageCarousel';
 import { EditPostModal } from './EditPostModal';
+import { CommentsSection } from './CommentsSection';
 
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
-  onComment?: (postId: string) => void;
   onRepost?: (postId: string) => void;
   onDelete?: (postId: string) => Promise<boolean>;
   onUpdate?: () => void;
 }
 
-export function PostCard({ post, onLike, onComment, onRepost, onDelete, onUpdate }: PostCardProps) {
+export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
@@ -46,6 +46,8 @@ export function PostCard({ post, onLike, onComment, onRepost, onDelete, onUpdate
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count);
 
   const isAuthor = user?.id === post.author_id;
 
@@ -239,11 +241,14 @@ export function PostCard({ post, onLike, onComment, onRepost, onDelete, onUpdate
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onComment?.(post.id)}
-            className="gap-2 text-muted-foreground hover:text-primary"
+            onClick={() => setShowComments(!showComments)}
+            className={cn(
+              'gap-2 text-muted-foreground hover:text-primary',
+              showComments && 'text-primary'
+            )}
           >
-            <MessageCircle className="h-5 w-5" />
-            <span>{post.comments_count || ''}</span>
+            <MessageCircle className={cn('h-5 w-5', showComments && 'fill-current')} />
+            <span>{commentsCount || ''}</span>
           </Button>
 
           <Button
@@ -264,6 +269,23 @@ export function PostCard({ post, onLike, onComment, onRepost, onDelete, onUpdate
             <Share2 className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Comments Section */}
+        <AnimatePresence>
+          {showComments && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CommentsSection 
+                postId={post.id} 
+                onCommentCountChange={setCommentsCount}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.article>
 
       {/* Edit Modal */}
