@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, Loader2, ArrowLeft } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { getOrCreateConversation } from '@/hooks/useConversation';
 import type { Message, Profile } from '@/types';
 
 interface ConversationWithProfile {
@@ -21,16 +22,70 @@ interface ConversationWithProfile {
 
 export default function Chat() {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const conversationParam = searchParams.get('conversation');
+  const userParam = searchParams.get('user');
 
   const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(conversationParam);
+  const [pendingUserProfile, setPendingUserProfile] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [creatingConversation, setCreatingConversation] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle ?user=ID parameter - create or get conversation
+  const handleUserParam = useCallback(async () => {
+    if (!user || !userParam || userParam === user.id) return;
+    
+    setCreatingConversation(true);
+    
+    // First fetch the target user's profile
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userParam)
+      .single();
+    
+    if (!targetProfile) {
+      setCreatingConversation(false);
+      return;
+    }
+    
+    // Get or create conversation
+    const conversationId = await getOrCreateConversation(user.id, userParam);
+    
+    if (conversationId) {
+      // Check if conversation already exists in list
+      const existingConvo = conversations.find(c => c.id === conversationId);
+      
+      if (!existingConvo) {
+        // Add new conversation to list with the target profile
+        const newConvo: ConversationWithProfile = {
+          id: conversationId,
+          other_user: targetProfile as Profile,
+          updated_at: new Date().toISOString(),
+        };
+        setConversations(prev => [newConvo, ...prev]);
+      }
+      
+      setSelectedConversation(conversationId);
+      setPendingUserProfile(targetProfile as Profile);
+      
+      // Clean up URL parameter
+      setSearchParams({}, { replace: true });
+    }
+    
+    setCreatingConversation(false);
+  }, [user, userParam, conversations, setSearchParams]);
+
+  useEffect(() => {
+    if (userParam && user && !creatingConversation) {
+      handleUserParam();
+    }
+  }, [userParam, user, handleUserParam, creatingConversation]);
 
   useEffect(() => {
     if (conversationParam) {
@@ -178,7 +233,13 @@ export default function Chat() {
     setSendingMessage(false);
   };
 
-  const selectedConvo = conversations.find((c) => c.id === selectedConversation);
+  // Get selected conversation - either from list or from pending profile (new conversation)
+  const selectedConvo = conversations.find((c) => c.id === selectedConversation) || 
+    (pendingUserProfile && selectedConversation ? {
+      id: selectedConversation,
+      other_user: pendingUserProfile,
+      updated_at: new Date().toISOString(),
+    } : null);
 
   return (
     <MainLayout>
@@ -194,15 +255,15 @@ export default function Chat() {
             <h1 className="text-xl font-bold">Mensajes</h1>
           </div>
 
-          {loading ? (
+          {loading || creatingConversation ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : conversations.length === 0 ? (
+          ) : conversations.length === 0 && !selectedConvo ? (
             <div className="p-4 text-center text-muted-foreground">
               No tienes conversaciones aún
             </div>
-          ) : (
+          ) : conversations.length === 0 ? null : (
             <div className="divide-y divide-border">
               {conversations.map((convo) => (
                 <button
