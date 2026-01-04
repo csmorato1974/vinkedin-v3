@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, Loader2, MessageCircle, Edit2, Save, X } from 'lucide-react';
+import { Camera, Loader2, MessageCircle, Edit2, Save, X, LogOut } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import type { Profile as ProfileType } from '@/types';
 export default function Profile() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user, profile: authProfile, refreshProfile } = useAuth();
+  const { user, profile: authProfile, refreshProfile, signOut } = useAuth();
   const { posts, toggleLike, deletePost, refetch } = usePosts();
   const [isStartingChat, setIsStartingChat] = useState(false);
 
@@ -271,16 +271,26 @@ export default function Profile() {
 
           {/* Actions */}
           {!isEditing && (
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2">
               {isOwnProfile ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1"
-                >
-                  <Edit2 className="mr-2 h-4 w-4" />
-                  Editar perfil
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="w-full"
+                  >
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Editar perfil
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={signOut}
+                    className="w-full text-muted-foreground hover:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Cerrar sesión
+                  </Button>
+                </>
               ) : (
                 <Button
                   onClick={async () => {
@@ -295,7 +305,7 @@ export default function Profile() {
                     setIsStartingChat(false);
                   }}
                   disabled={isStartingChat}
-                  className="flex-1 bg-gradient-brand text-white"
+                  className="w-full bg-gradient-brand text-white"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
                   {isStartingChat ? 'Iniciando...' : 'Enviar mensaje'}
