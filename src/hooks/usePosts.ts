@@ -122,6 +122,81 @@ export function usePosts() {
     }
   };
 
+  const updatePost = async (
+    postId: string,
+    updates: { text?: string | null; external_url?: string | null; media_urls?: string[] }
+  ) => {
+    if (!user) return false;
+
+    const post = posts.find((p) => p.id === postId);
+    if (!post || post.author_id !== user.id) return false;
+
+    const { error } = await supabase
+      .from('posts')
+      .update({
+        text: updates.text,
+        external_url: updates.external_url,
+        media_urls: updates.media_urls,
+      })
+      .eq('id', postId)
+      .eq('author_id', user.id);
+
+    if (error) {
+      console.error('Error updating post:', error);
+      return false;
+    }
+
+    // Update local state
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              text: updates.text ?? p.text,
+              external_url: updates.external_url ?? p.external_url,
+              media_urls: updates.media_urls ?? p.media_urls,
+            }
+          : p
+      )
+    );
+
+    return true;
+  };
+
+  const deletePost = async (postId: string) => {
+    if (!user) return false;
+
+    const post = posts.find((p) => p.id === postId);
+    if (!post || post.author_id !== user.id) return false;
+
+    // Delete media from storage
+    if (post.media_urls && post.media_urls.length > 0) {
+      const filePaths = post.media_urls.map((url) => {
+        const parts = url.split('/content-media/');
+        return parts.length > 1 ? parts[1] : null;
+      }).filter(Boolean) as string[];
+
+      if (filePaths.length > 0) {
+        await supabase.storage.from('content-media').remove(filePaths);
+      }
+    }
+
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId)
+      .eq('author_id', user.id);
+
+    if (error) {
+      console.error('Error deleting post:', error);
+      return false;
+    }
+
+    // Update local state
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    return true;
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
@@ -150,5 +225,7 @@ export function usePosts() {
     error,
     refetch: fetchPosts,
     toggleLike,
+    updatePost,
+    deletePost,
   };
 }

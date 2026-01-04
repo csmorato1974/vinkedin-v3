@@ -8,7 +8,7 @@ import { usePosts } from '@/hooks/usePosts';
 import { Button } from '@/components/ui/button';
 
 export default function Feed() {
-  const { posts, loading, error, refetch, toggleLike } = usePosts();
+  const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   return (
@@ -103,6 +103,8 @@ export default function Feed() {
                 onLike={toggleLike}
                 onComment={() => {}}
                 onRepost={() => {}}
+                onDelete={deletePost}
+                onUpdate={refetch}
               />
             ))}
           </div>
