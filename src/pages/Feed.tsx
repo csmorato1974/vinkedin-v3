@@ -112,7 +112,6 @@ export default function Feed() {
                 key={post.id}
                 post={post}
                 onLike={toggleLike}
-                onComment={() => {}}
                 onRepost={() => {}}
                 onDelete={deletePost}
                 onUpdate={refetch}
