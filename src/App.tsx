@@ -11,6 +11,7 @@ import CreatePost from "./pages/CreatePost";
 import Discover from "./pages/Discover";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
+import PostDetail from "./pages/PostDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            {/* Public post detail page - no auth required */}
+            <Route path="/post/:postId" element={<PostDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
