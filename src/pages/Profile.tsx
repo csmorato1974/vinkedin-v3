@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, Loader2, MessageCircle, Edit2, Save, X, LogOut } from 'lucide-react';
+import { Camera, Loader2, MessageCircle, Edit2, Save, X, LogOut, Share2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
@@ -274,14 +274,27 @@ export default function Profile() {
             <div className="mt-4 flex flex-col gap-2">
               {isOwnProfile ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="w-full"
-                  >
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Editar perfil
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                      className="flex-1"
+                    >
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Editar perfil
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const profileUrl = `${window.location.origin}/profile/${profile.id}`;
+                        navigator.clipboard.writeText(profileUrl);
+                        toast.success('Enlace del perfil copiado');
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <Button
                     variant="ghost"
                     onClick={signOut}
@@ -292,24 +305,37 @@ export default function Profile() {
                   </Button>
                 </>
               ) : (
-                <Button
-                  onClick={async () => {
-                    if (!user) return;
-                    setIsStartingChat(true);
-                    const conversationId = await getOrCreateConversation(user.id, profile.id);
-                    if (conversationId) {
-                      navigate(`/chat?conversation=${conversationId}`);
-                    } else {
-                      toast.error('Error al iniciar la conversación');
-                    }
-                    setIsStartingChat(false);
-                  }}
-                  disabled={isStartingChat}
-                  className="w-full bg-gradient-brand text-white"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  {isStartingChat ? 'Iniciando...' : 'Enviar mensaje'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      if (!user) return;
+                      setIsStartingChat(true);
+                      const conversationId = await getOrCreateConversation(user.id, profile.id);
+                      if (conversationId) {
+                        navigate(`/chat?conversation=${conversationId}`);
+                      } else {
+                        toast.error('Error al iniciar la conversación');
+                      }
+                      setIsStartingChat(false);
+                    }}
+                    disabled={isStartingChat}
+                    className="flex-1 bg-gradient-brand text-white"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    {isStartingChat ? 'Iniciando...' : 'Enviar mensaje'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      const profileUrl = `${window.location.origin}/profile/${profile.id}`;
+                      navigator.clipboard.writeText(profileUrl);
+                      toast.success('Enlace del perfil copiado');
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
           )}

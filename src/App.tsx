@@ -65,14 +65,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/profile/:userId"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+            {/* Public profile page - anyone can view */}
+            <Route path="/profile/:userId" element={<Profile />} />
             {/* Public post detail page - no auth required */}
             <Route path="/post/:postId" element={<PostDetail />} />
             <Route path="*" element={<NotFound />} />
