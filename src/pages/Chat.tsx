@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, Loader2, ArrowLeft } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
@@ -20,13 +21,22 @@ interface ConversationWithProfile {
 
 export default function Chat() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const conversationParam = searchParams.get('conversation');
+
   const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(conversationParam);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (conversationParam) {
+      setSelectedConversation(conversationParam);
+    }
+  }, [conversationParam]);
 
   useEffect(() => {
     if (user) {

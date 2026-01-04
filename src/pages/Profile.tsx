@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/hooks/usePosts';
+import { getOrCreateConversation } from '@/hooks/useConversation';
 import { toast } from 'sonner';
 import type { Profile as ProfileType } from '@/types';
 
@@ -17,7 +18,8 @@ export default function Profile() {
   const { userId } = useParams();
   const navigate = useNavigate();
   const { user, profile: authProfile, refreshProfile } = useAuth();
-  const { posts, toggleLike } = usePosts();
+  const { posts, toggleLike, deletePost, refetch } = usePosts();
+  const [isStartingChat, setIsStartingChat] = useState(false);
 
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -281,11 +283,22 @@ export default function Profile() {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => navigate(`/chat?user=${profile.id}`)}
+                  onClick={async () => {
+                    if (!user) return;
+                    setIsStartingChat(true);
+                    const conversationId = await getOrCreateConversation(user.id, profile.id);
+                    if (conversationId) {
+                      navigate(`/chat?conversation=${conversationId}`);
+                    } else {
+                      toast.error('Error al iniciar la conversación');
+                    }
+                    setIsStartingChat(false);
+                  }}
+                  disabled={isStartingChat}
                   className="flex-1 bg-gradient-brand text-white"
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
-                  Enviar mensaje
+                  {isStartingChat ? 'Iniciando...' : 'Enviar mensaje'}
                 </Button>
               )}
             </div>
@@ -306,7 +319,13 @@ export default function Profile() {
         ) : (
           <div className="divide-y divide-border md:divide-y-0 md:space-y-4 md:p-4">
             {userPosts.map((post) => (
-              <PostCard key={post.id} post={post} onLike={toggleLike} />
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                onLike={toggleLike} 
+                onDelete={deletePost}
+                onUpdate={refetch}
+              />
             ))}
           </div>
         )}
