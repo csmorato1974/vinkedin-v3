@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, User } from 'lucide-react';
+import { Home, Search, PlusCircle } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -42,10 +42,8 @@ export function MobileNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border bg-background/80 backdrop-blur-lg md:hidden">
       <NavItem to="/" icon={<Home className="h-6 w-6" />} label="Inicio" />
-      <NavItem to="/discover" icon={<Search className="h-6 w-6" />} label="Buscar" />
       <NavItem to="/create" icon={<PlusCircle className="h-7 w-7" />} label="" isCreate />
-      
-      <NavItem to="/profile" icon={<User className="h-6 w-6" />} label="Perfil" />
+      <NavItem to="/discover" icon={<Search className="h-6 w-6" />} label="Buscar" />
     </nav>
   );
 }
