@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, ArrowLeft, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, ArrowLeft, Loader2, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [isFavoriteAnimating, setIsFavoriteAnimating] = useState(false);
 
   useEffect(() => {
     if (postId) {
@@ -50,10 +51,11 @@ export default function PostDetail() {
         return;
       }
 
-      // Fetch likes and comments count
-      const [{ data: likesData }, { data: commentsData }] = await Promise.all([
+      // Fetch likes, comments, and favorites count
+      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }] = await Promise.all([
         supabase.from('post_likes').select('user_id').eq('post_id', id),
         supabase.from('comments').select('id').eq('post_id', id),
+        supabase.from('post_favorites').select('user_id').eq('post_id', id),
       ]);
 
       const enrichedPost: Post = {
@@ -68,6 +70,8 @@ export default function PostDetail() {
         likes_count: likesData?.length || 0,
         comments_count: commentsData?.length || 0,
         user_has_liked: user ? likesData?.some((l) => l.user_id === user.id) || false : false,
+        favorites_count: favoritesData?.length || 0,
+        user_has_favorited: user ? favoritesData?.some((f) => f.user_id === user.id) || false : false,
         created_at: postData.created_at,
         updated_at: postData.updated_at,
       };
@@ -123,6 +127,55 @@ export default function PostDetail() {
               ...prev,
               user_has_liked: post.user_has_liked,
               likes_count: post.likes_count,
+            }
+          : null
+      );
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!post) return;
+
+    setIsFavoriteAnimating(true);
+    setTimeout(() => setIsFavoriteAnimating(false), 300);
+
+    // Optimistic update
+    setPost((prev) =>
+      prev
+        ? {
+            ...prev,
+            user_has_favorited: !prev.user_has_favorited,
+            favorites_count: prev.user_has_favorited ? prev.favorites_count - 1 : prev.favorites_count + 1,
+          }
+        : null
+    );
+
+    try {
+      if (post.user_has_favorited) {
+        await supabase
+          .from('post_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', post.id);
+      } else {
+        await supabase.from('post_favorites').insert({
+          user_id: user.id,
+          post_id: post.id,
+        });
+      }
+    } catch {
+      // Revert on error
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              user_has_favorited: post.user_has_favorited,
+              favorites_count: post.favorites_count,
             }
           : null
       );
@@ -294,6 +347,25 @@ export default function PostDetail() {
             >
               <MessageCircle className="h-5 w-5" />
               <span>{post.comments_count || ''}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleFavorite}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-amber-500',
+                post.user_has_favorited && 'text-amber-500'
+              )}
+            >
+              <Star
+                className={cn(
+                  'h-5 w-5 transition-transform',
+                  post.user_has_favorited && 'fill-current',
+                  isFavoriteAnimating && 'scale-125'
+                )}
+              />
+              <span>{post.favorites_count || ''}</span>
             </Button>
 
             <Button

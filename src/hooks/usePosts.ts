@@ -31,23 +31,20 @@ export function usePosts() {
         return;
       }
 
-      // Fetch likes count and user's likes
+      // Fetch likes, comments, and favorites count
       const postIds = postsData.map((p) => p.id);
       
-      const { data: likesData } = await supabase
-        .from('post_likes')
-        .select('post_id, user_id')
-        .in('post_id', postIds);
-
-      const { data: commentsData } = await supabase
-        .from('comments')
-        .select('post_id')
-        .in('post_id', postIds);
+      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }] = await Promise.all([
+        supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
+        supabase.from('comments').select('post_id').in('post_id', postIds),
+        supabase.from('post_favorites').select('post_id, user_id').in('post_id', postIds),
+      ]);
 
       // Build posts with counts
       const enrichedPosts: Post[] = postsData.map((post) => {
         const postLikes = likesData?.filter((l) => l.post_id === post.id) || [];
         const postComments = commentsData?.filter((c) => c.post_id === post.id) || [];
+        const postFavorites = favoritesData?.filter((f) => f.post_id === post.id) || [];
 
         return {
           id: post.id,
@@ -61,6 +58,8 @@ export function usePosts() {
           likes_count: postLikes.length,
           comments_count: postComments.length,
           user_has_liked: user ? postLikes.some((l) => l.user_id === user.id) : false,
+          favorites_count: postFavorites.length,
+          user_has_favorited: user ? postFavorites.some((f) => f.user_id === user.id) : false,
           created_at: post.created_at,
           updated_at: post.updated_at,
         };
@@ -115,6 +114,54 @@ export function usePosts() {
                 ...p,
                 user_has_liked: post.user_has_liked,
                 likes_count: post.likes_count,
+              }
+            : p
+        )
+      );
+    }
+  };
+
+  const toggleFavorite = async (postId: string) => {
+    if (!user) return;
+
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+
+    // Optimistic update
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              user_has_favorited: !p.user_has_favorited,
+              favorites_count: p.user_has_favorited ? p.favorites_count - 1 : p.favorites_count + 1,
+            }
+          : p
+      )
+    );
+
+    try {
+      if (post.user_has_favorited) {
+        await supabase
+          .from('post_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', postId);
+      } else {
+        await supabase.from('post_favorites').insert({
+          user_id: user.id,
+          post_id: postId,
+        });
+      }
+    } catch {
+      // Revert on error
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                user_has_favorited: post.user_has_favorited,
+                favorites_count: post.favorites_count,
               }
             : p
         )
@@ -225,6 +272,7 @@ export function usePosts() {
     error,
     refetch: fetchPosts,
     toggleLike,
+    toggleFavorite,
     updatePost,
     deletePost,
   };
