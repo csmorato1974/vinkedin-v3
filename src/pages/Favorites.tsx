@@ -56,11 +56,12 @@ export default function Favorites() {
         return;
       }
 
-      // Fetch likes, comments, and favorites count
-      const [{ data: likesData }, { data: commentsData }, { data: allFavoritesData }] = await Promise.all([
+      // Fetch likes, comments, favorites, and reposts count
+      const [{ data: likesData }, { data: commentsData }, { data: allFavoritesData }, { data: repostsData }] = await Promise.all([
         supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),
         supabase.from('post_favorites').select('post_id, user_id').in('post_id', postIds),
+        supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', postIds),
       ]);
 
       // Build posts with counts, maintaining order from favorites
@@ -72,6 +73,7 @@ export default function Favorites() {
           const postLikes = likesData?.filter((l) => l.post_id === post.id) || [];
           const postComments = commentsData?.filter((c) => c.post_id === post.id) || [];
           const postFavorites = allFavoritesData?.filter((f) => f.post_id === post.id) || [];
+          const postReposts = repostsData?.filter((r) => r.repost_of_id === post.id) || [];
 
           return {
             id: post.id,
@@ -87,6 +89,8 @@ export default function Favorites() {
             user_has_liked: postLikes.some((l) => l.user_id === user.id),
             favorites_count: postFavorites.length,
             user_has_favorited: true, // All posts here are favorited by the user
+            reposts_count: postReposts.length,
+            user_has_reposted: postReposts.some((r) => r.author_id === user.id),
             created_at: post.created_at,
             updated_at: post.updated_at,
           };
@@ -171,6 +175,74 @@ export default function Favorites() {
     } catch {
       // Re-add on error
       fetchFavorites();
+    }
+  };
+
+  const toggleRepost = async (postId: string) => {
+    if (!user) return { success: false, needsAuth: true };
+
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return { success: false, needsAuth: false };
+
+    // Check if user already reposted this post
+    const { data: existingRepost } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('repost_of_id', postId)
+      .eq('author_id', user.id)
+      .maybeSingle();
+
+    if (existingRepost) {
+      // Undo repost - delete the repost
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', existingRepost.id)
+        .eq('author_id', user.id);
+
+      if (error) {
+        console.error('Error undoing repost:', error);
+        return { success: false, needsAuth: false };
+      }
+
+      // Update local state
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, reposts_count: p.reposts_count - 1, user_has_reposted: false }
+            : p
+        )
+      );
+
+      return { success: true, needsAuth: false, action: 'undone' };
+    } else {
+      // Create repost
+      const { error } = await supabase
+        .from('posts')
+        .insert({
+          author_id: user.id,
+          type: 'repost' as const,
+          repost_of_id: postId,
+          text: null,
+          external_url: null,
+          media_urls: [],
+        });
+
+      if (error) {
+        console.error('Error creating repost:', error);
+        return { success: false, needsAuth: false };
+      }
+
+      // Update local state
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, reposts_count: p.reposts_count + 1, user_has_reposted: true }
+            : p
+        )
+      );
+
+      return { success: true, needsAuth: false, action: 'created' };
     }
   };
 
@@ -264,7 +336,7 @@ export default function Favorites() {
                 post={post}
                 onLike={toggleLike}
                 onFavorite={toggleFavorite}
-                onRepost={() => {}}
+                onRepost={toggleRepost}
                 onDelete={deletePost}
                 onUpdate={fetchFavorites}
               />

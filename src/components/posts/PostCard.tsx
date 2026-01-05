@@ -34,7 +34,7 @@ interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onFavorite?: (postId: string) => void;
-  onRepost?: (postId: string) => void;
+  onRepost?: (postId: string) => Promise<{ success: boolean; needsAuth: boolean; action?: string }>;
   onDelete?: (postId: string) => Promise<boolean>;
   onUpdate?: () => void;
 }
@@ -44,6 +44,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
   const navigate = useNavigate();
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isFavoriteAnimating, setIsFavoriteAnimating] = useState(false);
+  const [isRepostAnimating, setIsRepostAnimating] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -67,6 +68,24 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
     setIsFavoriteAnimating(true);
     onFavorite?.(post.id);
     setTimeout(() => setIsFavoriteAnimating(false), 300);
+  };
+
+  const handleRepost = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setIsRepostAnimating(true);
+    const result = await onRepost?.(post.id);
+    setTimeout(() => setIsRepostAnimating(false), 300);
+    
+    if (result?.success) {
+      if (result.action === 'created') {
+        toast.success('Publicación reposteada');
+      } else if (result.action === 'undone') {
+        toast.success('Repost eliminado');
+      }
+    }
   };
 
   const handleShare = async () => {
@@ -266,10 +285,19 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onRepost?.(post.id)}
-            className="gap-2 text-muted-foreground hover:text-brand-green"
+            onClick={handleRepost}
+            className={cn(
+              'gap-2 text-muted-foreground hover:text-brand-green',
+              post.user_has_reposted && 'text-brand-green'
+            )}
           >
-            <Repeat2 className="h-5 w-5" />
+            <Repeat2
+              className={cn(
+                'h-5 w-5 transition-transform',
+                isRepostAnimating && 'animate-like-pop'
+              )}
+            />
+            <span>{post.reposts_count || ''}</span>
           </Button>
 
           <Button

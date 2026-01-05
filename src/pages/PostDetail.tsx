@@ -22,6 +22,7 @@ export default function PostDetail() {
   const [error, setError] = useState<string | null>(null);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isFavoriteAnimating, setIsFavoriteAnimating] = useState(false);
+  const [isRepostAnimating, setIsRepostAnimating] = useState(false);
 
   useEffect(() => {
     if (postId) {
@@ -51,11 +52,12 @@ export default function PostDetail() {
         return;
       }
 
-      // Fetch likes, comments, and favorites count
-      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }] = await Promise.all([
+      // Fetch likes, comments, favorites, and reposts count
+      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }] = await Promise.all([
         supabase.from('post_likes').select('user_id').eq('post_id', id),
         supabase.from('comments').select('id').eq('post_id', id),
         supabase.from('post_favorites').select('user_id').eq('post_id', id),
+        supabase.from('posts').select('author_id').eq('repost_of_id', id),
       ]);
 
       const enrichedPost: Post = {
@@ -72,6 +74,8 @@ export default function PostDetail() {
         user_has_liked: user ? likesData?.some((l) => l.user_id === user.id) || false : false,
         favorites_count: favoritesData?.length || 0,
         user_has_favorited: user ? favoritesData?.some((f) => f.user_id === user.id) || false : false,
+        reposts_count: repostsData?.length || 0,
+        user_has_reposted: user ? repostsData?.some((r) => r.author_id === user.id) || false : false,
         created_at: postData.created_at,
         updated_at: postData.updated_at,
       };
@@ -179,6 +183,65 @@ export default function PostDetail() {
             }
           : null
       );
+    }
+  };
+
+  const handleRepost = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!post) return;
+
+    setIsRepostAnimating(true);
+    setTimeout(() => setIsRepostAnimating(false), 300);
+
+    // Check if user already reposted this post
+    const { data: existingRepost } = await supabase
+      .from('posts')
+      .select('id')
+      .eq('repost_of_id', post.id)
+      .eq('author_id', user.id)
+      .maybeSingle();
+
+    if (existingRepost) {
+      // Undo repost
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', existingRepost.id)
+        .eq('author_id', user.id);
+
+      if (!error) {
+        setPost((prev) =>
+          prev
+            ? { ...prev, reposts_count: prev.reposts_count - 1, user_has_reposted: false }
+            : null
+        );
+        toast.success('Repost eliminado');
+      }
+    } else {
+      // Create repost
+      const { error } = await supabase
+        .from('posts')
+        .insert({
+          author_id: user.id,
+          type: 'repost' as const,
+          repost_of_id: post.id,
+          text: null,
+          external_url: null,
+          media_urls: [],
+        });
+
+      if (!error) {
+        setPost((prev) =>
+          prev
+            ? { ...prev, reposts_count: prev.reposts_count + 1, user_has_reposted: true }
+            : null
+        );
+        toast.success('Publicación reposteada');
+      }
     }
   };
 
@@ -371,9 +434,19 @@ export default function PostDetail() {
             <Button
               variant="ghost"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-brand-green"
+              onClick={handleRepost}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-brand-green',
+                post.user_has_reposted && 'text-brand-green'
+              )}
             >
-              <Repeat2 className="h-5 w-5" />
+              <Repeat2
+                className={cn(
+                  'h-5 w-5 transition-transform',
+                  isRepostAnimating && 'scale-125'
+                )}
+              />
+              <span>{post.reposts_count || ''}</span>
             </Button>
 
             <Button
