@@ -26,13 +26,13 @@ const VersionChecker = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <VersionChecker />
-        <UpdateNotification />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <VersionChecker />
+          <UpdateNotification />
+          <Toaster />
+          <Sonner />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route
@@ -90,9 +90,9 @@ const App = () => (
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
