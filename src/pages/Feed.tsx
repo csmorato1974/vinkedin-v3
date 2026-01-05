@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
@@ -13,6 +14,7 @@ export default function Feed() {
   const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <MainLayout>
@@ -39,10 +41,10 @@ export default function Feed() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={refetch}
+            onClick={() => navigate('/profile')}
             className="text-muted-foreground"
           >
-            <RefreshCw className="h-5 w-5" />
+            <User className="h-5 w-5" />
           </Button>
         </div>
       </header>
