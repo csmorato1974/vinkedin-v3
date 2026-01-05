@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, MoreVertical, Users, Info, Handshake } from 'lucide-react';
+import { Loader2, MoreVertical, Users, Info, Handshake, User } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,11 @@ export default function Feed() {
           ) : (
             <h1 className="text-xl font-bold">Inicio</h1>
           )}
+          <a href="/profile" className="absolute left-1/2 -translate-x-1/2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+              <User className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </a>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
