@@ -6,6 +6,10 @@ export interface Profile {
   company: string | null;
   role: string | null;
   tags: string[];
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  linkedin: string | null;
   created_at: string;
   updated_at: string;
 }
