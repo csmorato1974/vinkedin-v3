@@ -38,7 +38,7 @@ export default function Feed() {
           playsInline
           className="w-full h-auto object-cover"
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+        <div className="absolute inset-x-0 top-[15%] flex flex-col items-center px-4">
           <motion.p
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
