@@ -38,7 +38,7 @@ export default function Feed() {
           playsInline
           className="w-full h-auto object-cover"
         />
-        <div className="absolute bottom-6 left-0 right-0 text-center px-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
           <motion.p
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -46,10 +46,10 @@ export default function Feed() {
             className="font-bold"
             style={{ 
               fontSize: 'clamp(1rem, 4vw, 2rem)',
-              color: 'hsl(174 72% 51%)'
+              color: 'hsl(217 91% 60%)'
             }}
           >
-            Tu hub de comunidad digital
+            Tu comunidad digital
           </motion.p>
           <motion.p
             initial={{ opacity: 0, x: -50 }}
@@ -58,7 +58,7 @@ export default function Feed() {
             className="font-bold"
             style={{ 
               fontSize: 'clamp(1rem, 4vw, 2rem)',
-              color: 'hsl(174 72% 51%)'
+              color: 'hsl(217 91% 60%)'
             }}
           >
             de crecimiento empresarial
