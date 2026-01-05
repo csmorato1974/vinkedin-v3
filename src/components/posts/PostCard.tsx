@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, MoreHorizontal, Pencil, Trash2, Mail } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { getOrCreateConversation } from '@/hooks/useConversation';
+
 import type { Post } from '@/types';
 import { ImageCarousel } from './ImageCarousel';
 import { EditPostModal } from './EditPostModal';
@@ -45,7 +45,7 @@ export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCar
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isStartingChat, setIsStartingChat] = useState(false);
+  
   const [showComments, setShowComments] = useState(false);
   const [commentsCount, setCommentsCount] = useState(post.comments_count);
 
@@ -76,19 +76,6 @@ export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCar
     setIsDeleteDialogOpen(false);
   };
 
-  const handleStartChat = async () => {
-    if (!user || post.author_id === user.id) return;
-    setIsStartingChat(true);
-    
-    const conversationId = await getOrCreateConversation(user.id, post.author_id);
-    
-    if (conversationId) {
-      navigate(`/chat?conversation=${conversationId}`);
-    } else {
-      toast.error('Error al iniciar la conversación');
-    }
-    setIsStartingChat(false);
-  };
 
   const handleEditSuccess = () => {
     onUpdate?.();
@@ -179,12 +166,6 @@ export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCar
                     Eliminar
                   </DropdownMenuItem>
                 </>
-              )}
-              {!isAuthor && user && (
-                <DropdownMenuItem onClick={handleStartChat} disabled={isStartingChat}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Enviar mensaje
-                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
