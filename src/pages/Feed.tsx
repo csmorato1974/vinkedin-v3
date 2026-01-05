@@ -38,6 +38,15 @@ export default function Feed() {
           playsInline
           className="w-full h-auto object-cover"
         />
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.5 }}
+          className="absolute bottom-4 left-0 right-0 text-center font-bold text-white drop-shadow-lg"
+          style={{ fontSize: 'clamp(0.6rem, 2vw, 1.2rem)' }}
+        >
+          Tu hub de comunidad digital de crecimiento empresarial
+        </motion.p>
       </section>
 
       {/* Content */}
