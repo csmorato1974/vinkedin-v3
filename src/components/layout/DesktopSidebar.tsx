@@ -1,4 +1,4 @@
-import { Home, Search, PlusCircle, MessageCircle, User, LogOut } from 'lucide-react';
+import { Home, Search, PlusCircle, User, LogOut } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,7 +49,7 @@ export function DesktopSidebar() {
         <NavItem to="/" icon={<Home className="h-6 w-6" />} label="Inicio" />
         <NavItem to="/discover" icon={<Search className="h-6 w-6" />} label="Descubrir" />
         <NavItem to="/create" icon={<PlusCircle className="h-6 w-6" />} label="Crear" />
-        <NavItem to="/chat" icon={<MessageCircle className="h-6 w-6" />} label="Mensajes" />
+        
         <NavItem to="/profile" icon={<User className="h-6 w-6" />} label="Perfil" />
       </nav>
 

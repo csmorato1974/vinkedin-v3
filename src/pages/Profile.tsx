@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, Loader2, MessageCircle, Edit2, Save, X, LogOut, Share2 } from 'lucide-react';
+import { Camera, Loader2, Edit2, Save, X, LogOut, Share2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/hooks/usePosts';
-import { getOrCreateConversation } from '@/hooks/useConversation';
+
 import { toast } from 'sonner';
 import type { Profile as ProfileType } from '@/types';
 
@@ -19,7 +19,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, profile: authProfile, refreshProfile, signOut } = useAuth();
   const { posts, toggleLike, deletePost, refetch } = usePosts();
-  const [isStartingChat, setIsStartingChat] = useState(false);
+  
 
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -305,37 +305,18 @@ export default function Profile() {
                   </Button>
                 </>
               ) : (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={async () => {
-                      if (!user) return;
-                      setIsStartingChat(true);
-                      const conversationId = await getOrCreateConversation(user.id, profile.id);
-                      if (conversationId) {
-                        navigate(`/chat?conversation=${conversationId}`);
-                      } else {
-                        toast.error('Error al iniciar la conversación');
-                      }
-                      setIsStartingChat(false);
-                    }}
-                    disabled={isStartingChat}
-                    className="flex-1 bg-gradient-brand text-white"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    {isStartingChat ? 'Iniciando...' : 'Enviar mensaje'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      const profileUrl = `${window.location.origin}/profile/${profile.id}`;
-                      navigator.clipboard.writeText(profileUrl);
-                      toast.success('Enlace del perfil copiado');
-                    }}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const profileUrl = `${window.location.origin}/profile/${profile.id}`;
+                    navigator.clipboard.writeText(profileUrl);
+                    toast.success('Enlace del perfil copiado');
+                  }}
+                  className="w-full"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Compartir perfil
+                </Button>
               )}
             </div>
           )}
