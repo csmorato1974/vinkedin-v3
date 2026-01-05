@@ -34,11 +34,19 @@ export function usePosts() {
       // Fetch likes, comments, favorites, and reposts count
       const postIds = postsData.map((p) => p.id);
       
-      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }] = await Promise.all([
+      // Get original post IDs for reposts
+      const repostOfIds = postsData
+        .filter((p) => p.type === 'repost' && p.repost_of_id)
+        .map((p) => p.repost_of_id as string);
+      
+      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }, { data: originalPostsData }] = await Promise.all([
         supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),
         supabase.from('post_favorites').select('post_id, user_id').in('post_id', postIds),
         supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', postIds),
+        repostOfIds.length > 0 
+          ? supabase.from('posts').select(`*, author:profiles!posts_author_id_fkey(*)`).in('id', repostOfIds)
+          : Promise.resolve({ data: [] }),
       ]);
 
       // Build posts with counts
@@ -47,6 +55,38 @@ export function usePosts() {
         const postComments = commentsData?.filter((c) => c.post_id === post.id) || [];
         const postFavorites = favoritesData?.filter((f) => f.post_id === post.id) || [];
         const postReposts = repostsData?.filter((r) => r.repost_of_id === post.id) || [];
+        
+        // Find original post for reposts
+        let repostOf: Post | null = null;
+        if (post.type === 'repost' && post.repost_of_id && originalPostsData) {
+          const originalPost = originalPostsData.find((op) => op.id === post.repost_of_id);
+          if (originalPost) {
+            const originalLikes = likesData?.filter((l) => l.post_id === originalPost.id) || [];
+            const originalComments = commentsData?.filter((c) => c.post_id === originalPost.id) || [];
+            const originalFavorites = favoritesData?.filter((f) => f.post_id === originalPost.id) || [];
+            const originalReposts = repostsData?.filter((r) => r.repost_of_id === originalPost.id) || [];
+            
+            repostOf = {
+              id: originalPost.id,
+              author_id: originalPost.author_id,
+              author: originalPost.author as Profile,
+              type: originalPost.type as 'original' | 'repost',
+              text: originalPost.text,
+              external_url: originalPost.external_url,
+              media_urls: originalPost.media_urls || [],
+              repost_of_id: originalPost.repost_of_id,
+              likes_count: originalLikes.length,
+              comments_count: originalComments.length,
+              user_has_liked: user ? originalLikes.some((l) => l.user_id === user.id) : false,
+              favorites_count: originalFavorites.length,
+              user_has_favorited: user ? originalFavorites.some((f) => f.user_id === user.id) : false,
+              reposts_count: originalReposts.length,
+              user_has_reposted: user ? originalReposts.some((r) => r.author_id === user.id) : false,
+              created_at: originalPost.created_at,
+              updated_at: originalPost.updated_at,
+            };
+          }
+        }
 
         return {
           id: post.id,
@@ -57,6 +97,7 @@ export function usePosts() {
           external_url: post.external_url,
           media_urls: post.media_urls || [],
           repost_of_id: post.repost_of_id,
+          repost_of: repostOf,
           likes_count: postLikes.length,
           comments_count: postComments.length,
           user_has_liked: user ? postLikes.some((l) => l.user_id === user.id) : false,
