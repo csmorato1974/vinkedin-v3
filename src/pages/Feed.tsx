@@ -11,6 +11,7 @@ import heroVideo from '@/assets/hero-2.mp4';
 export default function Feed() {
   const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [videoEnded, setVideoEnded] = useState(false);
 
   return (
     <MainLayout>
@@ -36,34 +37,37 @@ export default function Feed() {
           autoPlay
           muted
           playsInline
+          onEnded={() => setVideoEnded(true)}
           className="w-full h-auto object-cover"
         />
-        <div className="absolute inset-x-0 top-[15%] flex flex-col items-center px-4">
-          <motion.p
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="font-bold"
-            style={{ 
-              fontSize: 'clamp(1rem, 4vw, 2rem)',
-              color: 'hsl(217 91% 60%)'
-            }}
-          >
-            Tu comunidad digital
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="font-bold"
-            style={{ 
-              fontSize: 'clamp(1rem, 4vw, 2rem)',
-              color: 'hsl(217 91% 60%)'
-            }}
-          >
-            de crecimiento empresarial
-          </motion.p>
-        </div>
+        {videoEnded && (
+          <div className="absolute inset-x-0 top-[15%] flex flex-col items-center px-4">
+            <motion.p
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="font-bold"
+              style={{ 
+                fontSize: 'clamp(1rem, 4vw, 2rem)',
+                color: 'hsl(217 91% 60%)'
+              }}
+            >
+              Tu comunidad digital
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="font-bold"
+              style={{ 
+                fontSize: 'clamp(1rem, 4vw, 2rem)',
+                color: 'hsl(217 91% 60%)'
+              }}
+            >
+              de crecimiento empresarial
+            </motion.p>
+          </div>
+        )}
       </section>
 
       {/* Content */}
