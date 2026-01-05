@@ -42,7 +42,7 @@ export default function Feed() {
           ) : (
             <h1 className="text-xl font-bold">Inicio</h1>
           )}
-          <a href="/profile" className="absolute left-1/2 -translate-x-1/2">
+          <a href="/profile" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
               <User className="h-5 w-5 text-muted-foreground" />
             </div>
