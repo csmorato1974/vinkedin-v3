@@ -58,16 +58,13 @@ export default function Feed() {
           className="w-full h-auto object-cover"
         />
         {videoEnded && (
-          <div className="absolute inset-x-0 top-[15%] flex flex-col items-center px-4">
+          <div className="absolute inset-x-0 top-[15%] flex flex-col items-start px-6 md:px-12">
             <motion.p
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
-              className="font-bold"
-              style={{ 
-                fontSize: 'clamp(1rem, 4vw, 2rem)',
-                color: 'hsl(217 91% 60%)'
-              }}
+              className="font-bold text-gradient-brand"
+              style={{ fontSize: 'clamp(1rem, 4vw, 2rem)' }}
             >
               Tu comunidad digital
             </motion.p>
@@ -75,11 +72,8 @@ export default function Feed() {
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="font-bold"
-              style={{ 
-                fontSize: 'clamp(1rem, 4vw, 2rem)',
-                color: 'hsl(217 91% 60%)'
-              }}
+              className="font-bold text-gradient-brand"
+              style={{ fontSize: 'clamp(1rem, 4vw, 2rem)' }}
             >
               de crecimiento empresarial
             </motion.p>
