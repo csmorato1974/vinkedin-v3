@@ -38,18 +38,32 @@ export default function Feed() {
           playsInline
           className="w-full h-auto object-cover"
         />
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="absolute bottom-6 left-0 right-0 text-center font-bold px-4"
-          style={{ 
-            fontSize: 'clamp(0.75rem, 2.5vw, 1.4rem)',
-            color: 'hsl(217 91% 60%)'
-          }}
-        >
-          Tu hub de comunidad digital de crecimiento empresarial
-        </motion.p>
+        <div className="absolute bottom-6 left-0 right-0 text-center px-4">
+          <motion.p
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="font-bold"
+            style={{ 
+              fontSize: 'clamp(1rem, 4vw, 2rem)',
+              color: 'hsl(174 72% 51%)'
+            }}
+          >
+            Tu hub de comunidad digital
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="font-bold"
+            style={{ 
+              fontSize: 'clamp(1rem, 4vw, 2rem)',
+              color: 'hsl(174 72% 51%)'
+            }}
+          >
+            de crecimiento empresarial
+          </motion.p>
+        </div>
       </section>
 
       {/* Content */}
