@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, Loader2, Edit2, Save, X, LogOut, Share2 } from 'lucide-react';
+import { Camera, Loader2, Edit2, Save, X, LogOut, Share2, Mail, Phone, Globe, Linkedin } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePosts } from '@/hooks/usePosts';
-
 import { toast } from 'sonner';
 import type { Profile as ProfileType } from '@/types';
 
@@ -19,7 +18,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const { user, profile: authProfile, refreshProfile, signOut } = useAuth();
   const { posts, toggleLike, deletePost, refetch } = usePosts();
-  
 
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +28,9 @@ export default function Profile() {
     company: '',
     role: '',
     tags: '',
+    phone: '',
+    website: '',
+    linkedin: '',
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +59,9 @@ export default function Profile() {
         company: data.company || '',
         role: data.role || '',
         tags: (data.tags || []).join(', '),
+        phone: data.phone || '',
+        website: data.website || '',
+        linkedin: data.linkedin || '',
       });
     }
     setLoading(false);
@@ -70,7 +74,6 @@ export default function Profile() {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/avatar.${fileExt}`;
 
-    // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, file, { upsert: true });
@@ -84,7 +87,6 @@ export default function Profile() {
       .from('avatars')
       .getPublicUrl(fileName);
 
-    // Update profile
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ avatar_url: urlData.publicUrl })
@@ -97,8 +99,29 @@ export default function Profile() {
     }
   };
 
+  const validateUrl = (url: string): boolean => {
+    if (!url) return true;
+    try {
+      new URL(url.startsWith('http') ? url : `https://${url}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!user) return;
+
+    // Validate URLs
+    if (editForm.website && !validateUrl(editForm.website)) {
+      toast.error('URL del sitio web no válida');
+      return;
+    }
+    if (editForm.linkedin && !validateUrl(editForm.linkedin)) {
+      toast.error('URL de LinkedIn no válida');
+      return;
+    }
+
     setIsSaving(true);
 
     const tags = editForm.tags
@@ -113,6 +136,9 @@ export default function Profile() {
         company: editForm.company || null,
         role: editForm.role || null,
         tags,
+        phone: editForm.phone || null,
+        website: editForm.website || null,
+        linkedin: editForm.linkedin || null,
       })
       .eq('id', user.id);
 
@@ -149,6 +175,8 @@ export default function Profile() {
       </MainLayout>
     );
   }
+
+  const hasContactInfo = profile.email || profile.phone || profile.website || profile.linkedin;
 
   return (
     <MainLayout>
@@ -222,6 +250,60 @@ export default function Profile() {
                     }
                     placeholder="Tags (separados por coma)"
                   />
+                  
+                  {/* Contact fields section */}
+                  <div className="border-t border-border pt-3">
+                    <p className="mb-2 text-sm font-medium text-muted-foreground">Datos de contacto</p>
+                    
+                    {/* Email - Read only */}
+                    <div className="relative mb-2">
+                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={profile.email || ''}
+                        readOnly
+                        disabled
+                        className="bg-muted pl-10 text-muted-foreground"
+                        placeholder="Email (sincronizado con tu cuenta)"
+                      />
+                    </div>
+                    
+                    <div className="relative mb-2">
+                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={editForm.phone}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, phone: e.target.value })
+                        }
+                        className="pl-10"
+                        placeholder="Teléfono (opcional)"
+                      />
+                    </div>
+                    
+                    <div className="relative mb-2">
+                      <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={editForm.website}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, website: e.target.value })
+                        }
+                        className="pl-10"
+                        placeholder="Sitio web (opcional)"
+                      />
+                    </div>
+                    
+                    <div className="relative">
+                      <Linkedin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={editForm.linkedin}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, linkedin: e.target.value })
+                        }
+                        className="pl-10"
+                        placeholder="LinkedIn (opcional)"
+                      />
+                    </div>
+                  </div>
+                  
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -268,6 +350,55 @@ export default function Profile() {
               )}
             </div>
           </div>
+
+          {/* Contact Info Section - Visible for all users */}
+          {!isEditing && hasContactInfo && (
+            <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4">
+              <h3 className="mb-3 text-sm font-semibold">Datos de contacto</h3>
+              <div className="space-y-2">
+                {profile.email && (
+                  <a 
+                    href={`mailto:${profile.email}`}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span>{profile.email}</span>
+                  </a>
+                )}
+                {profile.phone && (
+                  <a 
+                    href={`tel:${profile.phone}`}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                    <span>{profile.phone}</span>
+                  </a>
+                )}
+                {profile.website && (
+                  <a 
+                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Globe className="h-4 w-4" />
+                    <span>{profile.website}</span>
+                  </a>
+                )}
+                {profile.linkedin && (
+                  <a 
+                    href={profile.linkedin.startsWith('http') ? profile.linkedin : `https://${profile.linkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Linkedin className="h-4 w-4" />
+                    <span>LinkedIn</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           {!isEditing && (
