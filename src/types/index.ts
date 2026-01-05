@@ -29,6 +29,8 @@ export interface Post {
   user_has_liked: boolean;
   favorites_count: number;
   user_has_favorited: boolean;
+  reposts_count: number;
+  user_has_reposted: boolean;
   created_at: string;
   updated_at: string;
 }
