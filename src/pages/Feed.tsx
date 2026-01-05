@@ -6,7 +6,7 @@ import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
 import { usePosts } from '@/hooks/usePosts';
 import { Button } from '@/components/ui/button';
-import heroLogo from '@/assets/hero-logo.png';
+import heroVideo from '@/assets/hero-2.mp4';
 
 export default function Feed() {
   const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
@@ -30,48 +30,14 @@ export default function Feed() {
       </header>
 
       {/* Hero Section */}
-      <section className="w-full bg-gradient-brand px-4 py-8 md:py-12">
-        <div className="mx-auto max-w-3xl text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-2xl font-bold text-white md:text-3xl lg:text-4xl"
-          >
-            VinkedIn Connect
-          </motion.h2>
-          
-          <motion.img
-            src={heroLogo}
-            alt="VinkedIn Logo"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="mx-auto my-4 h-24 w-24 md:h-32 md:w-32 object-contain"
-          />
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-sm text-white/80 md:text-base"
-          >
-            Tu hub de contenidos profesionales. Comparte, conecta y crece.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-          >
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              size="lg"
-              className="mt-6 bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
-            >
-              Crear primer post
-            </Button>
-          </motion.div>
-        </div>
+      <section className="relative w-full overflow-hidden">
+        <video
+          src={heroVideo}
+          autoPlay
+          muted
+          playsInline
+          className="w-full h-auto object-cover"
+        />
       </section>
 
       {/* Content */}
