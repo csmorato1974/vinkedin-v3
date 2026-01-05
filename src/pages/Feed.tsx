@@ -16,7 +16,7 @@ import heroVideo from '@/assets/hero-2.mp4';
 import headerLogo from '@/assets/header-logo.png';
 
 export default function Feed() {
-  const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
+  const { posts, loading, error, refetch, toggleLike, toggleFavorite, deletePost } = usePosts();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [videoEnded, setVideoEnded] = useState(false);
 
@@ -168,6 +168,7 @@ export default function Feed() {
                 key={post.id}
                 post={post}
                 onLike={toggleLike}
+                onFavorite={toggleFavorite}
                 onRepost={() => {}}
                 onDelete={deletePost}
                 onUpdate={refetch}

@@ -12,6 +12,7 @@ import Discover from "./pages/Discover";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import PostDetail from "./pages/PostDetail";
+import Favorites from "./pages/Favorites";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,15 @@ const App = () => (
             <Route path="/profile/:userId" element={<Profile />} />
             {/* Public post detail page - no auth required */}
             <Route path="/post/:postId" element={<PostDetail />} />
+            {/* Favorites page - requires auth */}
+            <Route
+              path="/favorites"
+              element={
+                <ProtectedRoute>
+                  <Favorites />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

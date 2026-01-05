@@ -23,6 +23,8 @@ export interface Post {
   likes_count: number;
   comments_count: number;
   user_has_liked: boolean;
+  favorites_count: number;
+  user_has_favorited: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, ExternalLink, MoreHorizontal, Pencil, Trash2, Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -33,15 +33,17 @@ import { CommentsSection } from './CommentsSection';
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
+  onFavorite?: (postId: string) => void;
   onRepost?: (postId: string) => void;
   onDelete?: (postId: string) => Promise<boolean>;
   onUpdate?: () => void;
 }
 
-export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCardProps) {
+export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [isFavoriteAnimating, setIsFavoriteAnimating] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -55,6 +57,16 @@ export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCar
     setIsLikeAnimating(true);
     onLike(post.id);
     setTimeout(() => setIsLikeAnimating(false), 300);
+  };
+
+  const handleFavorite = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    setIsFavoriteAnimating(true);
+    onFavorite?.(post.id);
+    setTimeout(() => setIsFavoriteAnimating(false), 300);
   };
 
   const handleShare = async () => {
@@ -230,6 +242,25 @@ export function PostCard({ post, onLike, onRepost, onDelete, onUpdate }: PostCar
           >
             <MessageCircle className={cn('h-5 w-5', showComments && 'fill-current')} />
             <span>{commentsCount || ''}</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFavorite}
+            className={cn(
+              'gap-2 text-muted-foreground hover:text-amber-500',
+              post.user_has_favorited && 'text-amber-500'
+            )}
+          >
+            <Star
+              className={cn(
+                'h-5 w-5 transition-transform',
+                post.user_has_favorited && 'fill-current',
+                isFavoriteAnimating && 'animate-like-pop'
+              )}
+            />
+            <span>{post.favorites_count || ''}</span>
           </Button>
 
           <Button
