@@ -7,6 +7,7 @@ import { CreatePostModal } from '@/components/posts/CreatePostModal';
 import { usePosts } from '@/hooks/usePosts';
 import { Button } from '@/components/ui/button';
 import heroVideo from '@/assets/hero-2.mp4';
+import headerLogo from '@/assets/header-logo.png';
 
 export default function Feed() {
   const { posts, loading, error, refetch, toggleLike, deletePost } = usePosts();
@@ -18,7 +19,23 @@ export default function Feed() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="flex h-14 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Inicio</h1>
+          {videoEnded ? (
+            <motion.img
+              src={headerLogo}
+              alt="VinkedIn"
+              initial={{ opacity: 0, scale: 0.5, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 15,
+                duration: 0.6
+              }}
+              className="h-10 w-auto"
+            />
+          ) : (
+            <h1 className="text-xl font-bold">Inicio</h1>
+          )}
           <Button
             variant="ghost"
             size="icon"
