@@ -112,11 +112,6 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
     onUpdate?.();
   };
 
-  const timeAgo = formatDistanceToNow(new Date(post.created_at), {
-    addSuffix: true,
-    locale: es,
-  });
-
   const extractDomain = (url: string) => {
     try {
       return new URL(url).hostname.replace('www.', '');
@@ -124,6 +119,9 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
       return url;
     }
   };
+
+  // Determine which content to display
+  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
 
   return (
     <>
@@ -134,27 +132,30 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
       >
         {/* Repost indicator */}
         {post.type === 'repost' && (
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <div 
+            className="mb-2 flex items-center gap-2 text-xs text-muted-foreground cursor-pointer hover:underline"
+            onClick={() => navigate(`/profile/${post.author_id}`)}
+          >
             <Repeat2 className="h-4 w-4" />
             <span>{post.author.name} reposteó</span>
           </div>
         )}
 
-        {/* Author header */}
+        {/* Author header - show original author for reposts */}
         <div className="flex items-start gap-3">
           <div 
             className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full bg-gradient-brand cursor-pointer"
-            onClick={() => navigate(`/profile/${post.author_id}`)}
+            onClick={() => navigate(`/profile/${displayPost.author_id}`)}
           >
-            {post.author.avatar_url ? (
+            {displayPost.author.avatar_url ? (
               <img
-                src={post.author.avatar_url}
-                alt={post.author.name}
+                src={displayPost.author.avatar_url}
+                alt={displayPost.author.name}
                 className="h-full w-full object-cover"
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-lg font-bold text-white">
-                {post.author.name.charAt(0).toUpperCase()}
+                {displayPost.author.name.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
@@ -162,16 +163,18 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
             <div className="flex items-center gap-2">
               <span 
                 className="font-semibold text-foreground truncate cursor-pointer hover:underline"
-                onClick={() => navigate(`/profile/${post.author_id}`)}
+                onClick={() => navigate(`/profile/${displayPost.author_id}`)}
               >
-                {post.author.name}
+                {displayPost.author.name}
               </span>
-              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(displayPost.created_at), { addSuffix: true, locale: es })}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {post.author.role && <span className="truncate">{post.author.role}</span>}
-              {post.author.role && post.author.company && <span>•</span>}
-              {post.author.company && <span className="truncate">{post.author.company}</span>}
+              {displayPost.author.role && <span className="truncate">{displayPost.author.role}</span>}
+              {displayPost.author.role && displayPost.author.company && <span>•</span>}
+              {displayPost.author.company && <span className="truncate">{displayPost.author.company}</span>}
             </div>
           </div>
 
@@ -202,29 +205,29 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
           </DropdownMenu>
         </div>
 
-        {/* Post content */}
-        {post.text && (
-          <p className="mt-3 whitespace-pre-wrap text-foreground">{post.text}</p>
+        {/* Post content - show original content for reposts */}
+        {displayPost.text && (
+          <p className="mt-3 whitespace-pre-wrap text-foreground">{displayPost.text}</p>
         )}
 
         {/* Media */}
-        {post.media_urls && post.media_urls.length > 0 && (
+        {displayPost.media_urls && displayPost.media_urls.length > 0 && (
           <div className="mt-3 -mx-4 md:mx-0 md:rounded-xl md:overflow-hidden">
-            <ImageCarousel images={post.media_urls} />
+            <ImageCarousel images={displayPost.media_urls} />
           </div>
         )}
 
         {/* External link */}
-        {post.external_url && (
+        {displayPost.external_url && (
           <a
-            href={post.external_url}
+            href={displayPost.external_url}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:bg-muted"
           >
             <ExternalLink className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-primary truncate">
-              {extractDomain(post.external_url)}
+              {extractDomain(displayPost.external_url)}
             </span>
           </a>
         )}
