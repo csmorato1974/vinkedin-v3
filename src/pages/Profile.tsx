@@ -428,7 +428,11 @@ export default function Profile() {
                   </div>
                   <Button
                     variant="ghost"
-                    onClick={signOut}
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/auth');
+                      toast.success('Sesión cerrada');
+                    }}
                     className="w-full text-muted-foreground hover:text-destructive"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
