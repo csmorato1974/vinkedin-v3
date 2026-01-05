@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { UpdateNotification } from "@/components/UpdateNotification";
+import { useVersionCheck } from "@/hooks/useVersionCheck";
 import Auth from "./pages/Auth";
 import Feed from "./pages/Feed";
 import CreatePost from "./pages/CreatePost";
@@ -17,10 +19,17 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const VersionChecker = () => {
+  useVersionCheck();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <VersionChecker />
+        <UpdateNotification />
         <Toaster />
         <Sonner />
         <BrowserRouter>
