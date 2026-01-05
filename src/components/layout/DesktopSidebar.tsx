@@ -1,8 +1,9 @@
 import { Home, Search, PlusCircle, User, LogOut } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
 interface NavItemProps {
@@ -33,6 +34,13 @@ function NavItem({ to, icon, label }: NavItemProps) {
 
 export function DesktopSidebar() {
   const { signOut, profile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+    toast.success('Sesión cerrada');
+  };
 
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[72px] flex-col border-r border-border bg-card md:flex lg:w-[220px]">
@@ -79,7 +87,7 @@ export function DesktopSidebar() {
         <Button
           variant="ghost"
           className="w-full justify-center gap-2 text-muted-foreground hover:text-destructive lg:justify-start"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5" />
           <span className="hidden lg:inline">Cerrar sesión</span>
