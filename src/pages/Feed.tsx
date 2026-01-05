@@ -60,7 +60,7 @@ export default function Feed() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
                 <a
-                  href="https://vinculovirtual.com/index.php/quienes-somos/"
+                  href="https://vinculovirtual.com/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
@@ -71,7 +71,7 @@ export default function Feed() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
-                  href="https://www.linkedin.com/in/carlos-soliz-2072851a4/"
+                  href="https://vinculovirtual.com/index.php/quienes-somos/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
