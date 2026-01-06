@@ -34,16 +34,21 @@ export function usePosts() {
       // Fetch likes, comments, favorites, and reposts count
       const postIds = postsData.map((p) => p.id);
       
-      // Get original post IDs for reposts
-      const repostOfIds = postsData
-        .filter((p) => p.type === 'repost' && p.repost_of_id)
-        .map((p) => p.repost_of_id as string);
+      // Get original post IDs for reposts (unique IDs only)
+      const repostOfIds = [...new Set(
+        postsData
+          .filter((p) => p.type === 'repost' && p.repost_of_id)
+          .map((p) => p.repost_of_id as string)
+      )];
+      
+      // Combine all post IDs we need stats for (including original posts of reposts)
+      const allPostIds = [...new Set([...postIds, ...repostOfIds])];
       
       const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }, { data: originalPostsData }] = await Promise.all([
-        supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
-        supabase.from('comments').select('post_id').in('post_id', postIds),
-        supabase.from('post_favorites').select('post_id, user_id').in('post_id', postIds),
-        supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', postIds),
+        supabase.from('post_likes').select('post_id, user_id').in('post_id', allPostIds),
+        supabase.from('comments').select('post_id').in('post_id', allPostIds),
+        supabase.from('post_favorites').select('post_id, user_id').in('post_id', allPostIds),
+        supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', allPostIds),
         repostOfIds.length > 0 
           ? supabase.from('posts').select(`*, author:profiles!posts_author_id_fkey(*)`).in('id', repostOfIds)
           : Promise.resolve({ data: [] }),
