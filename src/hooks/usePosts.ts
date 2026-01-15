@@ -297,14 +297,26 @@ export function usePosts() {
   const toggleRepost = async (postId: string) => {
     if (!user) return { success: false, needsAuth: true };
 
+    // Find the post in our state - it could be the original or a repost wrapper
     const post = posts.find((p) => p.id === postId);
     if (!post) return { success: false, needsAuth: false };
 
-    // Check if user already reposted this post
+    // Always repost the ORIGINAL post, never a repost wrapper
+    // If postId is already an original, use it. If it's a repost, use its original.
+    const targetOriginalId = post.type === 'repost' && post.repost_of_id 
+      ? post.repost_of_id 
+      : post.id;
+    
+    // Get the original post data for embedding in the new repost
+    const targetOriginalPost = post.type === 'repost' && post.repost_of 
+      ? post.repost_of 
+      : post;
+
+    // Check if user already reposted the ORIGINAL post
     const { data: existingRepost } = await supabase
       .from('posts')
       .select('id')
-      .eq('repost_of_id', postId)
+      .eq('repost_of_id', targetOriginalId)
       .eq('author_id', user.id)
       .maybeSingle();
 
@@ -321,26 +333,35 @@ export function usePosts() {
         return { success: false, needsAuth: false };
       }
 
-      // Update local state
+      // Update local state - remove the repost and update original post count
       setPosts((prev) =>
         prev
           .filter((p) => p.id !== existingRepost.id)
-          .map((p) =>
-            p.id === postId
-              ? { ...p, reposts_count: p.reposts_count - 1, user_has_reposted: false }
-              : p
-          )
+          .map((p) => {
+            // Update the original post's counter
+            if (p.id === targetOriginalId) {
+              return { ...p, reposts_count: p.reposts_count - 1, user_has_reposted: false };
+            }
+            // Also update any repost wrappers that reference this original
+            if (p.type === 'repost' && p.repost_of_id === targetOriginalId && p.repost_of) {
+              return {
+                ...p,
+                repost_of: { ...p.repost_of, reposts_count: p.repost_of.reposts_count - 1, user_has_reposted: false }
+              };
+            }
+            return p;
+          })
       );
 
       return { success: true, needsAuth: false, action: 'undone' };
     } else {
-      // Create repost
+      // Create repost of the ORIGINAL post
       const { data: newRepost, error } = await supabase
         .from('posts')
         .insert({
           author_id: user.id,
           type: 'repost' as const,
-          repost_of_id: postId,
+          repost_of_id: targetOriginalId,
           text: null,
           external_url: null,
           media_urls: [],
@@ -356,7 +377,7 @@ export function usePosts() {
         return { success: false, needsAuth: false };
       }
 
-      // Update local state - add repost and update original post count
+      // Build enriched repost with the original post embedded
       const enrichedRepost: Post = {
         id: newRepost.id,
         author_id: newRepost.author_id,
@@ -366,7 +387,7 @@ export function usePosts() {
         external_url: newRepost.external_url,
         media_urls: newRepost.media_urls || [],
         repost_of_id: newRepost.repost_of_id,
-        repost_of: post,
+        repost_of: targetOriginalPost,
         likes_count: 0,
         comments_count: 0,
         user_has_liked: false,
@@ -378,13 +399,23 @@ export function usePosts() {
         updated_at: newRepost.updated_at,
       };
 
+      // Update local state - add repost at top and update original post count
       setPosts((prev) => [
         enrichedRepost,
-        ...prev.map((p) =>
-          p.id === postId
-            ? { ...p, reposts_count: p.reposts_count + 1, user_has_reposted: true }
-            : p
-        ),
+        ...prev.map((p) => {
+          // Update the original post's counter
+          if (p.id === targetOriginalId) {
+            return { ...p, reposts_count: p.reposts_count + 1, user_has_reposted: true };
+          }
+          // Also update any repost wrappers that reference this original
+          if (p.type === 'repost' && p.repost_of_id === targetOriginalId && p.repost_of) {
+            return {
+              ...p,
+              repost_of: { ...p.repost_of, reposts_count: p.repost_of.reposts_count + 1, user_has_reposted: true }
+            };
+          }
+          return p;
+        }),
       ]);
 
       return { success: true, needsAuth: false, action: 'created' };

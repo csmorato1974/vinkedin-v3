@@ -52,7 +52,47 @@ export default function PostDetail() {
         return;
       }
 
-      // Fetch likes, comments, favorites, and reposts count
+      // If this is a repost, fetch the original post
+      let repostOfData: Post | null = null;
+      if (postData.type === 'repost' && postData.repost_of_id) {
+        const { data: originalPost } = await supabase
+          .from('posts')
+          .select(`*, author:profiles!posts_author_id_fkey(*)`)
+          .eq('id', postData.repost_of_id)
+          .maybeSingle();
+        
+        if (originalPost) {
+          // Get stats for original post
+          const [{ data: origLikes }, { data: origComments }, { data: origFavorites }, { data: origReposts }] = await Promise.all([
+            supabase.from('post_likes').select('user_id').eq('post_id', originalPost.id),
+            supabase.from('comments').select('id').eq('post_id', originalPost.id),
+            supabase.from('post_favorites').select('user_id').eq('post_id', originalPost.id),
+            supabase.from('posts').select('author_id').eq('repost_of_id', originalPost.id),
+          ]);
+
+          repostOfData = {
+            id: originalPost.id,
+            author_id: originalPost.author_id,
+            author: originalPost.author as Profile,
+            type: originalPost.type as 'original' | 'repost',
+            text: originalPost.text,
+            external_url: originalPost.external_url,
+            media_urls: originalPost.media_urls || [],
+            repost_of_id: originalPost.repost_of_id,
+            likes_count: origLikes?.length || 0,
+            comments_count: origComments?.length || 0,
+            user_has_liked: user ? origLikes?.some((l) => l.user_id === user.id) || false : false,
+            favorites_count: origFavorites?.length || 0,
+            user_has_favorited: user ? origFavorites?.some((f) => f.user_id === user.id) || false : false,
+            reposts_count: origReposts?.length || 0,
+            user_has_reposted: user ? origReposts?.some((r) => r.author_id === user.id) || false : false,
+            created_at: originalPost.created_at,
+            updated_at: originalPost.updated_at,
+          };
+        }
+      }
+
+      // Fetch likes, comments, favorites, and reposts count for the main post
       const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }] = await Promise.all([
         supabase.from('post_likes').select('user_id').eq('post_id', id),
         supabase.from('comments').select('id').eq('post_id', id),
@@ -69,6 +109,7 @@ export default function PostDetail() {
         external_url: postData.external_url,
         media_urls: postData.media_urls || [],
         repost_of_id: postData.repost_of_id,
+        repost_of: repostOfData,
         likes_count: likesData?.length || 0,
         comments_count: commentsData?.length || 0,
         user_has_liked: user ? likesData?.some((l) => l.user_id === user.id) || false : false,
@@ -197,11 +238,15 @@ export default function PostDetail() {
     setIsRepostAnimating(true);
     setTimeout(() => setIsRepostAnimating(false), 300);
 
-    // Check if user already reposted this post
+    // Always repost the ORIGINAL post, not a repost wrapper
+    const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
+    const targetOriginalId = displayPost.id;
+
+    // Check if user already reposted the original post
     const { data: existingRepost } = await supabase
       .from('posts')
       .select('id')
-      .eq('repost_of_id', post.id)
+      .eq('repost_of_id', targetOriginalId)
       .eq('author_id', user.id)
       .maybeSingle();
 
@@ -214,32 +259,60 @@ export default function PostDetail() {
         .eq('author_id', user.id);
 
       if (!error) {
-        setPost((prev) =>
-          prev
-            ? { ...prev, reposts_count: prev.reposts_count - 1, user_has_reposted: false }
-            : null
-        );
+        // Update state based on whether we're viewing the original or a repost
+        if (post.type === 'repost' && post.repost_of) {
+          setPost((prev) =>
+            prev
+              ? { 
+                  ...prev, 
+                  repost_of: prev.repost_of 
+                    ? { ...prev.repost_of, reposts_count: prev.repost_of.reposts_count - 1, user_has_reposted: false }
+                    : null
+                }
+              : null
+          );
+        } else {
+          setPost((prev) =>
+            prev
+              ? { ...prev, reposts_count: prev.reposts_count - 1, user_has_reposted: false }
+              : null
+          );
+        }
         toast.success('Repost eliminado');
       }
     } else {
-      // Create repost
+      // Create repost of the original
       const { error } = await supabase
         .from('posts')
         .insert({
           author_id: user.id,
           type: 'repost' as const,
-          repost_of_id: post.id,
+          repost_of_id: targetOriginalId,
           text: null,
           external_url: null,
           media_urls: [],
         });
 
       if (!error) {
-        setPost((prev) =>
-          prev
-            ? { ...prev, reposts_count: prev.reposts_count + 1, user_has_reposted: true }
-            : null
-        );
+        // Update state based on whether we're viewing the original or a repost
+        if (post.type === 'repost' && post.repost_of) {
+          setPost((prev) =>
+            prev
+              ? { 
+                  ...prev, 
+                  repost_of: prev.repost_of 
+                    ? { ...prev.repost_of, reposts_count: prev.repost_of.reposts_count + 1, user_has_reposted: true }
+                    : null
+                }
+              : null
+          );
+        } else {
+          setPost((prev) =>
+            prev
+              ? { ...prev, reposts_count: prev.reposts_count + 1, user_has_reposted: true }
+              : null
+          );
+        }
         toast.success('Publicación reposteada');
       }
     }
@@ -288,7 +361,10 @@ export default function PostDetail() {
     );
   }
 
-  const timeAgo = formatDistanceToNow(new Date(post.created_at), {
+  // Determine which content to display
+  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
+
+  const timeAgo = formatDistanceToNow(new Date(displayPost.created_at), {
     addSuffix: true,
     locale: es,
   });
@@ -320,63 +396,63 @@ export default function PostDetail() {
             </div>
           )}
 
-          {/* Author header */}
+          {/* Author header - show original author for reposts */}
           <div className="flex items-start gap-3">
             <Link
-              to={user ? `/profile/${post.author_id}` : '/auth'}
+              to={user ? `/profile/${displayPost.author_id}` : '/auth'}
               className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-full bg-gradient-brand"
             >
-              {post.author.avatar_url ? (
+              {displayPost.author.avatar_url ? (
                 <img
-                  src={post.author.avatar_url}
-                  alt={post.author.name}
+                  src={displayPost.author.avatar_url}
+                  alt={displayPost.author.name}
                   className="h-full w-full object-cover"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xl font-bold text-white">
-                  {post.author.name.charAt(0).toUpperCase()}
+                  {displayPost.author.name.charAt(0).toUpperCase()}
                 </div>
               )}
             </Link>
             <div className="flex-1 min-w-0">
               <Link
-                to={user ? `/profile/${post.author_id}` : '/auth'}
+                to={user ? `/profile/${displayPost.author_id}` : '/auth'}
                 className="font-semibold text-foreground hover:underline"
               >
-                {post.author.name}
+                {displayPost.author.name}
               </Link>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                {post.author.role && <span>{post.author.role}</span>}
-                {post.author.role && post.author.company && <span>•</span>}
-                {post.author.company && <span>{post.author.company}</span>}
+                {displayPost.author.role && <span>{displayPost.author.role}</span>}
+                {displayPost.author.role && displayPost.author.company && <span>•</span>}
+                {displayPost.author.company && <span>{displayPost.author.company}</span>}
               </div>
               <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
             </div>
           </div>
 
-          {/* Post text */}
-          {post.text && (
-            <p className="mt-4 whitespace-pre-wrap text-lg text-foreground">{post.text}</p>
+          {/* Post text - show original content for reposts */}
+          {displayPost.text && (
+            <p className="mt-4 whitespace-pre-wrap text-lg text-foreground">{displayPost.text}</p>
           )}
 
           {/* Media */}
-          {post.media_urls && post.media_urls.length > 0 && (
+          {displayPost.media_urls && displayPost.media_urls.length > 0 && (
             <div className="mt-4 rounded-xl overflow-hidden">
-              <ImageCarousel images={post.media_urls} />
+              <ImageCarousel images={displayPost.media_urls} />
             </div>
           )}
 
           {/* External link */}
-          {post.external_url && (
+          {displayPost.external_url && (
             <a
-              href={post.external_url}
+              href={displayPost.external_url}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:bg-muted"
             >
               <ExternalLink className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-primary truncate">
-                {extractDomain(post.external_url)}
+                {extractDomain(displayPost.external_url)}
               </span>
             </a>
           )}
@@ -389,17 +465,17 @@ export default function PostDetail() {
               onClick={handleLike}
               className={cn(
                 'gap-2 text-muted-foreground hover:text-destructive',
-                post.user_has_liked && 'text-destructive'
+                displayPost.user_has_liked && 'text-destructive'
               )}
             >
               <Heart
                 className={cn(
                   'h-5 w-5 transition-transform',
-                  post.user_has_liked && 'fill-current',
+                  displayPost.user_has_liked && 'fill-current',
                   isLikeAnimating && 'scale-125'
                 )}
               />
-              <span>{post.likes_count || ''}</span>
+              <span>{displayPost.likes_count || ''}</span>
             </Button>
 
             <Button
@@ -409,7 +485,7 @@ export default function PostDetail() {
               className="gap-2 text-muted-foreground hover:text-primary"
             >
               <MessageCircle className="h-5 w-5" />
-              <span>{post.comments_count || ''}</span>
+              <span>{displayPost.comments_count || ''}</span>
             </Button>
 
             <Button
@@ -418,17 +494,17 @@ export default function PostDetail() {
               onClick={handleFavorite}
               className={cn(
                 'gap-2 text-muted-foreground hover:text-amber-500',
-                post.user_has_favorited && 'text-amber-500'
+                displayPost.user_has_favorited && 'text-amber-500'
               )}
             >
               <Star
                 className={cn(
                   'h-5 w-5 transition-transform',
-                  post.user_has_favorited && 'fill-current',
+                  displayPost.user_has_favorited && 'fill-current',
                   isFavoriteAnimating && 'scale-125'
                 )}
               />
-              <span>{post.favorites_count || ''}</span>
+              <span>{displayPost.favorites_count || ''}</span>
             </Button>
 
             <Button
@@ -437,7 +513,7 @@ export default function PostDetail() {
               onClick={handleRepost}
               className={cn(
                 'gap-2 text-muted-foreground hover:text-brand-green',
-                post.user_has_reposted && 'text-brand-green'
+                displayPost.user_has_reposted && 'text-brand-green'
               )}
             >
               <Repeat2
@@ -446,7 +522,7 @@ export default function PostDetail() {
                   isRepostAnimating && 'scale-125'
                 )}
               />
-              <span>{post.reposts_count || ''}</span>
+              <span>{displayPost.reposts_count || ''}</span>
             </Button>
 
             <Button
