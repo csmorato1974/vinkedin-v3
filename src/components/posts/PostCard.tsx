@@ -50,13 +50,18 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [showComments, setShowComments] = useState(false);
-  const [commentsCount, setCommentsCount] = useState(post.comments_count);
+
+  // Determine which content to display and which post ID to use for actions
+  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
+  const actionPostId = displayPost.id;
+  
+  const [commentsCount, setCommentsCount] = useState(displayPost.comments_count);
 
   const isAuthor = user?.id === post.author_id;
 
   const handleLike = () => {
     setIsLikeAnimating(true);
-    onLike(post.id);
+    onLike(actionPostId);
     setTimeout(() => setIsLikeAnimating(false), 300);
   };
 
@@ -66,7 +71,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
       return;
     }
     setIsFavoriteAnimating(true);
-    onFavorite?.(post.id);
+    onFavorite?.(actionPostId);
     setTimeout(() => setIsFavoriteAnimating(false), 300);
   };
 
@@ -76,7 +81,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
       return;
     }
     setIsRepostAnimating(true);
-    const result = await onRepost?.(post.id);
+    const result = await onRepost?.(actionPostId);
     setTimeout(() => setIsRepostAnimating(false), 300);
     
     if (result?.success) {
@@ -89,7 +94,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/post/${post.id}`;
+    const url = `${window.location.origin}/post/${actionPostId}`;
     await navigator.clipboard.writeText(url);
     toast.success('Link copiado al portapapeles');
   };
@@ -119,9 +124,6 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
       return url;
     }
   };
-
-  // Determine which content to display
-  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
 
   return (
     <>
@@ -240,17 +242,17 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
             onClick={handleLike}
             className={cn(
               'gap-2 text-muted-foreground hover:text-destructive',
-              post.user_has_liked && 'text-destructive'
+              displayPost.user_has_liked && 'text-destructive'
             )}
           >
             <Heart
               className={cn(
                 'h-5 w-5 transition-transform',
-                post.user_has_liked && 'fill-current',
+                displayPost.user_has_liked && 'fill-current',
                 isLikeAnimating && 'animate-like-pop'
               )}
             />
-            <span>{post.likes_count || ''}</span>
+            <span>{displayPost.likes_count || ''}</span>
           </Button>
 
           <Button
@@ -272,17 +274,17 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
             onClick={handleFavorite}
             className={cn(
               'gap-2 text-muted-foreground hover:text-amber-500',
-              post.user_has_favorited && 'text-amber-500'
+              displayPost.user_has_favorited && 'text-amber-500'
             )}
           >
             <Star
               className={cn(
                 'h-5 w-5 transition-transform',
-                post.user_has_favorited && 'fill-current',
+                displayPost.user_has_favorited && 'fill-current',
                 isFavoriteAnimating && 'animate-like-pop'
               )}
             />
-            <span>{post.favorites_count || ''}</span>
+            <span>{displayPost.favorites_count || ''}</span>
           </Button>
 
           <Button
@@ -291,7 +293,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
             onClick={handleRepost}
             className={cn(
               'gap-2 text-muted-foreground hover:text-brand-green',
-              post.user_has_reposted && 'text-brand-green'
+              displayPost.user_has_reposted && 'text-brand-green'
             )}
           >
             <Repeat2
@@ -300,7 +302,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
                 isRepostAnimating && 'animate-like-pop'
               )}
             />
-            <span>{post.reposts_count || ''}</span>
+            <span>{displayPost.reposts_count || ''}</span>
           </Button>
 
           <Button
@@ -323,7 +325,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
               transition={{ duration: 0.2 }}
             >
               <CommentsSection 
-                postId={post.id} 
+                postId={actionPostId} 
                 onCommentCountChange={setCommentsCount}
               />
             </motion.div>

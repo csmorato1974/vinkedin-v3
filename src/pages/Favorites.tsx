@@ -184,11 +184,16 @@ export default function Favorites() {
     const post = posts.find((p) => p.id === postId);
     if (!post) return { success: false, needsAuth: false };
 
-    // Check if user already reposted this post
+    // Always repost the ORIGINAL post, never a repost wrapper
+    const targetOriginalId = post.type === 'repost' && post.repost_of_id 
+      ? post.repost_of_id 
+      : post.id;
+
+    // Check if user already reposted the original post
     const { data: existingRepost } = await supabase
       .from('posts')
       .select('id')
-      .eq('repost_of_id', postId)
+      .eq('repost_of_id', targetOriginalId)
       .eq('author_id', user.id)
       .maybeSingle();
 
@@ -205,24 +210,31 @@ export default function Favorites() {
         return { success: false, needsAuth: false };
       }
 
-      // Update local state
+      // Update local state - update the original post's counter
       setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, reposts_count: p.reposts_count - 1, user_has_reposted: false }
-            : p
-        )
+        prev.map((p) => {
+          if (p.id === targetOriginalId) {
+            return { ...p, reposts_count: p.reposts_count - 1, user_has_reposted: false };
+          }
+          if (p.type === 'repost' && p.repost_of_id === targetOriginalId && p.repost_of) {
+            return {
+              ...p,
+              repost_of: { ...p.repost_of, reposts_count: p.repost_of.reposts_count - 1, user_has_reposted: false }
+            };
+          }
+          return p;
+        })
       );
 
       return { success: true, needsAuth: false, action: 'undone' };
     } else {
-      // Create repost
+      // Create repost of the original
       const { error } = await supabase
         .from('posts')
         .insert({
           author_id: user.id,
           type: 'repost' as const,
-          repost_of_id: postId,
+          repost_of_id: targetOriginalId,
           text: null,
           external_url: null,
           media_urls: [],
@@ -233,13 +245,20 @@ export default function Favorites() {
         return { success: false, needsAuth: false };
       }
 
-      // Update local state
+      // Update local state - update the original post's counter
       setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, reposts_count: p.reposts_count + 1, user_has_reposted: true }
-            : p
-        )
+        prev.map((p) => {
+          if (p.id === targetOriginalId) {
+            return { ...p, reposts_count: p.reposts_count + 1, user_has_reposted: true };
+          }
+          if (p.type === 'repost' && p.repost_of_id === targetOriginalId && p.repost_of) {
+            return {
+              ...p,
+              repost_of: { ...p.repost_of, reposts_count: p.repost_of.reposts_count + 1, user_has_reposted: true }
+            };
+          }
+          return p;
+        })
       );
 
       return { success: true, needsAuth: false, action: 'created' };
