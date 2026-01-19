@@ -78,7 +78,7 @@ export default function Feed() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
-                  href="https://clearadviceconsulting.com/"
+                  href="https://clearadvicegrow.lovable.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2"
