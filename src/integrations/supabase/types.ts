@@ -316,6 +316,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_conversation_with_user: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
+      get_post_favorites_stats: {
+        Args: { post_ids: string[] }
+        Returns: {
+          favorites_count: number
+          post_id: string
+          user_has_favorited: boolean
+        }[]
+      }
       is_conversation_participant: {
         Args: { conv_id: string }
         Returns: boolean
