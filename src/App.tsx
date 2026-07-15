@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Feed from "./pages/Feed";
 import CreatePost from "./pages/CreatePost";
 import Discover from "./pages/Discover";
@@ -35,6 +36,7 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/"
               element={
