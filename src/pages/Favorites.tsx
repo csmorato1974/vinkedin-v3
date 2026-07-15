@@ -56,13 +56,21 @@ export default function Favorites() {
         return;
       }
 
-      // Fetch likes, comments, favorites, and reposts count
-      const [{ data: likesData }, { data: commentsData }, { data: allFavoritesData }, { data: repostsData }] = await Promise.all([
+      // Fetch likes, comments, favorites stats, and reposts count
+      const [{ data: likesData }, { data: commentsData }, { data: favStats }, { data: repostsData }] = await Promise.all([
         supabase.from('post_likes').select('post_id, user_id').in('post_id', postIds),
         supabase.from('comments').select('post_id').in('post_id', postIds),
-        supabase.from('post_favorites').select('post_id, user_id').in('post_id', postIds),
+        supabase.rpc('get_post_favorites_stats', { post_ids: postIds }),
         supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', postIds),
       ]);
+
+      const favStatsMap = new Map<string, { favorites_count: number; user_has_favorited: boolean }>();
+      (favStats as Array<{ post_id: string; favorites_count: number; user_has_favorited: boolean }> | null)?.forEach((row) => {
+        favStatsMap.set(row.post_id, {
+          favorites_count: Number(row.favorites_count) || 0,
+          user_has_favorited: !!row.user_has_favorited,
+        });
+      });
 
       // Build posts with counts, maintaining order from favorites
       const enrichedPosts: Post[] = postIds
@@ -72,7 +80,7 @@ export default function Favorites() {
 
           const postLikes = likesData?.filter((l) => l.post_id === post.id) || [];
           const postComments = commentsData?.filter((c) => c.post_id === post.id) || [];
-          const postFavorites = allFavoritesData?.filter((f) => f.post_id === post.id) || [];
+          const postFavStats = favStatsMap.get(post.id) || { favorites_count: 0, user_has_favorited: true };
           const postReposts = repostsData?.filter((r) => r.repost_of_id === post.id) || [];
 
           return {
@@ -87,7 +95,7 @@ export default function Favorites() {
             likes_count: postLikes.length,
             comments_count: postComments.length,
             user_has_liked: postLikes.some((l) => l.user_id === user.id),
-            favorites_count: postFavorites.length,
+            favorites_count: postFavStats.favorites_count,
             user_has_favorited: true, // All posts here are favorited by the user
             reposts_count: postReposts.length,
             user_has_reposted: postReposts.some((r) => r.author_id === user.id),
