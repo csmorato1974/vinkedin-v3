@@ -1,55 +1,24 @@
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Creates or returns an existing 1:1 conversation between the current
+ * authenticated user and the target user. Uses a server-side SECURITY
+ * DEFINER RPC so that adding the second participant is done atomically
+ * and only via the sanctioned path — clients cannot directly insert
+ * other users into conversation_participants.
+ */
 export async function getOrCreateConversation(
-  currentUserId: string,
+  _currentUserId: string,
   targetUserId: string
 ): Promise<string | null> {
-  // Find existing conversation between these two users
-  const { data: currentUserConvos } = await supabase
-    .from('conversation_participants')
-    .select('conversation_id')
-    .eq('user_id', currentUserId);
+  const { data, error } = await supabase.rpc('create_conversation_with_user', {
+    target_user_id: targetUserId,
+  });
 
-  if (currentUserConvos && currentUserConvos.length > 0) {
-    const conversationIds = currentUserConvos.map((p) => p.conversation_id);
-
-    const { data: sharedConvo } = await supabase
-      .from('conversation_participants')
-      .select('conversation_id')
-      .eq('user_id', targetUserId)
-      .in('conversation_id', conversationIds)
-      .limit(1)
-      .maybeSingle();
-
-    if (sharedConvo) {
-      return sharedConvo.conversation_id;
-    }
-  }
-
-  // Create new conversation
-  const { data: newConvo, error: convoError } = await supabase
-    .from('conversations')
-    .insert({})
-    .select('id')
-    .single();
-
-  if (convoError || !newConvo) {
-    console.error('Error creating conversation:', convoError);
+  if (error) {
+    console.error('Error creating conversation:', error);
     return null;
   }
 
-  // Add both participants
-  const { error: participantsError } = await supabase
-    .from('conversation_participants')
-    .insert([
-      { conversation_id: newConvo.id, user_id: currentUserId },
-      { conversation_id: newConvo.id, user_id: targetUserId },
-    ]);
-
-  if (participantsError) {
-    console.error('Error adding participants:', participantsError);
-    return null;
-  }
-
-  return newConvo.id;
+  return (data as string) ?? null;
 }

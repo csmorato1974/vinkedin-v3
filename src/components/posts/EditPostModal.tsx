@@ -79,9 +79,11 @@ export function EditPostModal({ isOpen, onClose, onSuccess, post }: EditPostModa
   };
 
   const validateUrl = (url: string) => {
+    if (!url) return true;
     try {
-      new URL(url);
-      return true;
+      const parsed = new URL(url);
+      // Only allow http/https to block javascript:, data:, file:, vbscript:, etc.
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
     } catch {
       return false;
     }
@@ -95,7 +97,7 @@ export function EditPostModal({ isOpen, onClose, onSuccess, post }: EditPostModa
     }
 
     if (externalUrl && !validateUrl(externalUrl)) {
-      toast.error('URL no válida');
+      toast.error('URL no válida. Solo se permiten enlaces http:// o https://');
       return;
     }
 
