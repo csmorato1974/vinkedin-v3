@@ -229,130 +229,157 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
           </DropdownMenu>
         </div>
 
-        {/* Post content - show original content for reposts */}
-        {displayPost.text && (
-          <p className="mt-3 whitespace-pre-wrap text-foreground">{displayPost.text}</p>
-        )}
+        {/* Content: mobile stacked; desktop grid with media left & rest right when media exists */}
+        <div
+          className={cn(
+            'flex flex-col',
+            hasMedia && 'md:grid md:grid-cols-2 md:gap-x-4 md:gap-y-3 md:items-start'
+          )}
+        >
+          {/* Post text - show original content for reposts */}
+          {displayPost.text && (
+            <p
+              className={cn(
+                'mt-3 whitespace-pre-wrap text-foreground',
+                hasMedia && 'md:mt-0 md:col-start-2 md:row-start-1'
+              )}
+            >
+              {displayPost.text}
+            </p>
+          )}
 
-        {/* Media */}
-        {displayPost.media_urls && displayPost.media_urls.length > 0 && (
-          <div className="mt-3 -mx-4 md:mx-0 md:rounded-xl md:overflow-hidden">
-            <ImageCarousel images={displayPost.media_urls} />
+          {/* Media */}
+          {hasMedia && (
+            <div className="mt-3 -mx-4 md:mx-0 md:mt-0 md:rounded-xl md:overflow-hidden md:col-start-1 md:row-start-1 md:row-span-4 md:self-stretch">
+              <ImageCarousel images={displayPost.media_urls!} />
+            </div>
+          )}
+
+          {/* External link */}
+          {displayPost.external_url && isSafeUrl(displayPost.external_url) && (
+            <a
+              href={displayPost.external_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'mt-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:bg-muted',
+                hasMedia && 'md:mt-0 md:col-start-2 md:row-start-2'
+              )}
+            >
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-primary truncate">
+                {extractDomain(displayPost.external_url)}
+              </span>
+            </a>
+          )}
+
+          {/* Actions */}
+          <div
+            className={cn(
+              'mt-4 flex items-center justify-between',
+              hasMedia && 'md:mt-0 md:col-start-2 md:row-start-3'
+            )}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLike}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-destructive',
+                displayPost.user_has_liked && 'text-destructive'
+              )}
+            >
+              <Heart
+                className={cn(
+                  'h-5 w-5 transition-transform',
+                  displayPost.user_has_liked && 'fill-current',
+                  isLikeAnimating && 'animate-like-pop'
+                )}
+              />
+              <span>{displayPost.likes_count || ''}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowComments(!showComments)}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-primary',
+                showComments && 'text-primary'
+              )}
+            >
+              <MessageCircle className={cn('h-5 w-5', showComments && 'fill-current')} />
+              <span>{commentsCount || ''}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleFavorite}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-amber-500',
+                displayPost.user_has_favorited && 'text-amber-500'
+              )}
+            >
+              <Star
+                className={cn(
+                  'h-5 w-5 transition-transform',
+                  displayPost.user_has_favorited && 'fill-current',
+                  isFavoriteAnimating && 'animate-like-pop'
+                )}
+              />
+              <span>{displayPost.favorites_count || ''}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRepost}
+              className={cn(
+                'gap-2 text-muted-foreground hover:text-brand-green',
+                displayPost.user_has_reposted && 'text-brand-green'
+              )}
+            >
+              <Repeat2
+                className={cn(
+                  'h-5 w-5 transition-transform',
+                  isRepostAnimating && 'animate-like-pop'
+                )}
+              />
+              <span>{displayPost.reposts_count || ''}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className="gap-2 text-muted-foreground hover:text-primary"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
           </div>
-        )}
 
-        {/* External link */}
-        {displayPost.external_url && isSafeUrl(displayPost.external_url) && (
-          <a
-            href={displayPost.external_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3 transition-colors hover:bg-muted"
-          >
-            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-primary truncate">
-              {extractDomain(displayPost.external_url)}
-            </span>
-          </a>
-        )}
-
-        {/* Actions */}
-        <div className="mt-4 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLike}
-            className={cn(
-              'gap-2 text-muted-foreground hover:text-destructive',
-              displayPost.user_has_liked && 'text-destructive'
+          {/* Comments Section */}
+          <AnimatePresence>
+            {showComments && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className={cn(
+                  hasMedia && 'md:col-start-2 md:row-start-4 md:overflow-y-auto md:max-h-[400px]'
+                )}
+              >
+                <CommentsSection
+                  postId={actionPostId}
+                  onCommentCountChange={setCommentsCount}
+                />
+              </motion.div>
             )}
-          >
-            <Heart
-              className={cn(
-                'h-5 w-5 transition-transform',
-                displayPost.user_has_liked && 'fill-current',
-                isLikeAnimating && 'animate-like-pop'
-              )}
-            />
-            <span>{displayPost.likes_count || ''}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowComments(!showComments)}
-            className={cn(
-              'gap-2 text-muted-foreground hover:text-primary',
-              showComments && 'text-primary'
-            )}
-          >
-            <MessageCircle className={cn('h-5 w-5', showComments && 'fill-current')} />
-            <span>{commentsCount || ''}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleFavorite}
-            className={cn(
-              'gap-2 text-muted-foreground hover:text-amber-500',
-              displayPost.user_has_favorited && 'text-amber-500'
-            )}
-          >
-            <Star
-              className={cn(
-                'h-5 w-5 transition-transform',
-                displayPost.user_has_favorited && 'fill-current',
-                isFavoriteAnimating && 'animate-like-pop'
-              )}
-            />
-            <span>{displayPost.favorites_count || ''}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRepost}
-            className={cn(
-              'gap-2 text-muted-foreground hover:text-brand-green',
-              displayPost.user_has_reposted && 'text-brand-green'
-            )}
-          >
-            <Repeat2
-              className={cn(
-                'h-5 w-5 transition-transform',
-                isRepostAnimating && 'animate-like-pop'
-              )}
-            />
-            <span>{displayPost.reposts_count || ''}</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleShare}
-            className="gap-2 text-muted-foreground hover:text-primary"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
+          </AnimatePresence>
         </div>
 
-        {/* Comments Section */}
-        <AnimatePresence>
-          {showComments && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <CommentsSection 
-                postId={actionPostId} 
-                onCommentCountChange={setCommentsCount}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.article>
 
       {/* Edit Modal */}
