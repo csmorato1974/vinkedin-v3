@@ -61,6 +61,12 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
 
   const [commentsCount, setCommentsCount] = useState(displayPost.comments_count);
 
+  // Auto-expand comments on desktop when post has media
+  useEffect(() => {
+    if (!isMobile && hasMedia) setShowComments(true);
+  }, [isMobile, hasMedia]);
+
+
 
   const isAuthor = user?.id === post.author_id;
 
