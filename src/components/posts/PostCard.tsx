@@ -59,12 +59,8 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
   // On desktop, show comments expanded by default when post has media
   const [showComments, setShowComments] = useState(false);
 
-
-  // Determine which content to display and which post ID to use for actions
-  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
-  const actionPostId = displayPost.id;
-  
   const [commentsCount, setCommentsCount] = useState(displayPost.comments_count);
+
 
   const isAuthor = user?.id === post.author_id;
 
