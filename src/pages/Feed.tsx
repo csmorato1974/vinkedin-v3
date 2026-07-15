@@ -37,52 +37,6 @@ export default function Feed() {
           ) : (
             <h1 className="text-xl font-bold">Inicio</h1>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem asChild>
-                <a
-                  href="https://vinculovirtual.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <Users className="h-4 w-4" />
-                  Comunidad
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  href="https://vinculovirtual.com/index.php/quienes-somos/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <Info className="h-4 w-4" />
-                  Quiénes somos
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  href="https://clearadvicegrow.lovable.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  <Handshake className="h-4 w-4" />
-                  Partners
-                </a>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </header>
 
