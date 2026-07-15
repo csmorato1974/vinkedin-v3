@@ -16,8 +16,10 @@ const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres');
 const nameSchema = z.string().min(2, 'El nombre debe tener al menos 2 caracteres');
 
+type Mode = 'login' | 'signup' | 'forgot';
+
 export default function Auth() {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<Mode>('login');
   const isLogin = mode === 'login';
   const isForgot = mode === 'forgot';
   const [email, setEmail] = useState('');
@@ -44,12 +46,14 @@ export default function Auth() {
       newErrors.email = emailResult.error.errors[0].message;
     }
 
-    const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
+    if (!isForgot) {
+      const passwordResult = passwordSchema.safeParse(password);
+      if (!passwordResult.success) {
+        newErrors.password = passwordResult.error.errors[0].message;
+      }
     }
 
-    if (!isLogin) {
+    if (mode === 'signup') {
       const nameResult = nameSchema.safeParse(name);
       if (!nameResult.success) {
         newErrors.name = nameResult.error.errors[0].message;
@@ -60,6 +64,11 @@ export default function Auth() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setErrors({});
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -68,7 +77,17 @@ export default function Auth() {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (isForgot) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('Te enviamos un email con instrucciones para restablecer tu contraseña.');
+          switchMode('login');
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
@@ -84,7 +103,7 @@ export default function Auth() {
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('Este email ya está registrado. ¿Quieres iniciar sesión?');
-            setIsLogin(true);
+            switchMode('login');
           } else {
             toast.error(error.message);
           }
@@ -99,9 +118,19 @@ export default function Auth() {
     }
   };
 
+  const title = isForgot
+    ? 'Recuperar contraseña'
+    : isLogin
+    ? 'Bienvenido de vuelta'
+    : 'Únete a VinkedIn';
+  const subtitle = isForgot
+    ? 'Te enviaremos un enlace para restablecerla'
+    : isLogin
+    ? 'Inicia sesión para continuar'
+    : 'Crea tu cuenta y conecta con profesionales';
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Video Background */}
       <video
         autoPlay
         muted
@@ -112,12 +141,9 @@ export default function Auth() {
         <source src={heroVideo} type="video/mp4" />
       </video>
 
-      {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/80" />
 
-      {/* Content */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
-        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -128,7 +154,6 @@ export default function Auth() {
           <span className="text-2xl font-bold text-white md:text-3xl">VinkedIn</span>
         </motion.div>
 
-        {/* Auth Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -136,19 +161,13 @@ export default function Auth() {
           className="w-full max-w-md rounded-2xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl md:p-8"
         >
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-white md:text-3xl">
-              {isLogin ? 'Bienvenido de vuelta' : 'Únete a VinkedIn'}
-            </h1>
-            <p className="mt-2 text-sm text-white/70">
-              {isLogin
-                ? 'Inicia sesión para continuar'
-                : 'Crea tu cuenta y conecta con profesionales'}
-            </p>
+            <h1 className="text-2xl font-bold text-white md:text-3xl">{title}</h1>
+            <p className="mt-2 text-sm text-white/70">{subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <AnimatePresence mode="wait">
-              {!isLogin && (
+              {mode === 'signup' && (
                 <motion.div
                   key="name-field"
                   initial={{ opacity: 0, height: 0 }}
@@ -170,9 +189,7 @@ export default function Auth() {
                       placeholder="Tu nombre"
                     />
                   </div>
-                  {errors.name && (
-                    <p className="mt-1 text-xs text-red-400">{errors.name}</p>
-                  )}
+                  {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -192,41 +209,48 @@ export default function Auth() {
                   placeholder="tu@email.com"
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-400">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
             </div>
 
-            <div>
-              <Label htmlFor="password" className="text-white/90">
-                Contraseña
-              </Label>
-              <div className="relative mt-1.5">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/50" />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border-white/20 bg-white/10 pl-10 pr-10 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
+            {!isForgot && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-white/90">
+                    Contraseña
+                  </Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot')}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
                   )}
-                </button>
+                </div>
+                <div className="relative mt-1.5">
+                  <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white/50" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-white/20 bg-white/10 pl-10 pr-10 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-xs text-red-400">{errors.password}</p>
+                )}
               </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-400">{errors.password}</p>
-              )}
-            </div>
+            )}
 
             <Button
               type="submit"
@@ -235,6 +259,8 @@ export default function Auth() {
             >
               {isSubmitting ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isForgot ? (
+                'Enviar enlace de recuperación'
               ) : isLogin ? (
                 'Iniciar sesión'
               ) : (
@@ -244,26 +270,34 @@ export default function Auth() {
           </form>
 
           <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrors({});
-              }}
-              className="text-sm text-white/70 hover:text-white"
-            >
-              {isLogin ? (
-                <>
-                  ¿No tienes cuenta?{' '}
-                  <span className="font-semibold text-primary">Regístrate</span>
-                </>
-              ) : (
-                <>
-                  ¿Ya tienes cuenta?{' '}
-                  <span className="font-semibold text-primary">Inicia sesión</span>
-                </>
-              )}
-            </button>
+            {isForgot ? (
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="inline-flex items-center gap-1 text-sm text-white/70 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Volver al inicio de sesión
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => switchMode(isLogin ? 'signup' : 'login')}
+                className="text-sm text-white/70 hover:text-white"
+              >
+                {isLogin ? (
+                  <>
+                    ¿No tienes cuenta?{' '}
+                    <span className="font-semibold text-primary">Regístrate</span>
+                  </>
+                ) : (
+                  <>
+                    ¿Ya tienes cuenta?{' '}
+                    <span className="font-semibold text-primary">Inicia sesión</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </motion.div>
       </div>
