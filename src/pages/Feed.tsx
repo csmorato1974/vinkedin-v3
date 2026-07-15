@@ -1,13 +1,7 @@
 // Feed page
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, MoreVertical, Users, Info, Handshake } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Loader2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PostCard } from '@/components/posts/PostCard';
 import { CreatePostModal } from '@/components/posts/CreatePostModal';
