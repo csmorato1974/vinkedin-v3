@@ -14,7 +14,7 @@ export function ImageCarousel({ images }: ImageCarouselProps) {
 
   if (images.length === 1) {
     return (
-      <div className="relative aspect-video w-full overflow-hidden bg-muted">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <img
           src={images[0]}
           alt=""
@@ -34,7 +34,7 @@ export function ImageCarousel({ images }: ImageCarouselProps) {
   };
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden bg-muted">
+    <div className="relative aspect-square w-full overflow-hidden bg-muted">
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
