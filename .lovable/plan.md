@@ -1,48 +1,53 @@
+# Rediseño de PostCard
 
-# Recuperación de contraseña
-
-Añadir flujo de "¿Olvidaste tu contraseña?" en la pantalla de login, usando el sistema de auth ya existente (Lovable Cloud). El usuario recibe un email con un enlace que lo lleva a una nueva página donde puede establecer una nueva contraseña.
-
-## Flujo
-
-```text
-[Auth /auth]
-   └─ link "¿Olvidaste tu contraseña?"
-        └─ abre modal / vista con campo de email
-             └─ envía email de recuperación
-                  └─ usuario hace clic en el enlace del email
-                       └─ [ResetPassword /reset-password]
-                            └─ formulario nueva contraseña + confirmar
-                                 └─ vuelve al feed autenticado
-```
+## Objetivo
+Reorganizar cada publicación en desktop para que la imagen tenga proporción cuadrada (1:1) y los comentarios se muestren en una columna a la derecha. En móvil se mantiene el diseño apilado actual, pero con la imagen también en 1:1.
 
 ## Cambios
 
-1. **`src/pages/Auth.tsx`**
-   - Añadir enlace "¿Olvidaste tu contraseña?" debajo del campo de contraseña (solo visible en modo login).
-   - Añadir un estado extra `mode: 'login' | 'signup' | 'forgot'` (o vista condicional) que muestra un formulario con un solo campo (email) y un botón "Enviar enlace de recuperación".
-   - Al enviar: llamar a `supabase.auth.resetPasswordForEmail(email, { redirectTo: \`\${window.location.origin}/reset-password\` })`, mostrar toast de éxito y volver al login.
+### 1. `ImageCarousel.tsx`
+- Cambiar `aspect-video` → `aspect-square` en los tres bloques (single image, multi image container).
+- Mantener `object-cover` (cover inteligente centrado) para que la foto llene el cuadrado recortando lo mínimo.
+- Sin barras/fondo blur — cover puro.
 
-2. **`src/pages/ResetPassword.tsx` (nuevo)**
-   - Página pública (no protegida) con el mismo estilo visual que `Auth.tsx` (video de fondo, tarjeta glass, logo).
-   - Detecta que llega desde el enlace de recuperación (sesión temporal establecida por Supabase al abrir el link).
-   - Formulario con dos campos: nueva contraseña + confirmar contraseña, validación con Zod (mínimo 6 caracteres, coincidencia).
-   - Llama a `supabase.auth.updateUser({ password })`. En éxito: toast, y redirige a `/`.
-   - Si no hay sesión de recuperación válida, muestra un mensaje "Enlace inválido o expirado" con botón para volver a `/auth`.
+### 2. `PostCard.tsx` — nuevo layout responsivo
+Estructura en desktop (`md:` breakpoint):
 
-3. **`src/App.tsx`**
-   - Registrar la ruta pública `/reset-password` apuntando al nuevo componente (fuera de `ProtectedRoute`).
+```text
+┌─────────────────────────────────────────────┐
+│ Header autor (ancho completo)               │
+├───────────────────────┬─────────────────────┤
+│                       │ Texto del post      │
+│                       │ Link externo        │
+│   Imagen 1:1          │ Barra de acciones   │
+│   (carrusel)          │ ─────────────────── │
+│                       │ Comentarios         │
+│                       │ (siempre visibles   │
+│                       │  o toggle)          │
+└───────────────────────┴─────────────────────┘
+```
+
+- Wrapper interno: `md:grid md:grid-cols-2 md:gap-4`.
+- Columna izquierda (desktop): solo el `ImageCarousel` cuadrado. Si el post no tiene media, la columna se colapsa y el contenido ocupa el ancho completo.
+- Columna derecha (desktop): texto, external link, botones de acciones y `CommentsSection`.
+- Los comentarios en desktop se muestran expandidos por defecto cuando hay media (aprovechando el espacio vertical del cuadrado); el botón de comentario sigue funcionando como toggle en móvil.
+
+### 3. Móvil (sin cambios estructurales)
+- Layout apilado tal como ahora: header → texto → imagen 1:1 → acciones → comentarios (toggle).
+- Solo cambia la relación de aspecto de la imagen (video→square).
 
 ## Detalles técnicos
+- Se usará `md:` (768px+) de Tailwind para el grid lateral.
+- Cuando `displayPost.media_urls` esté vacío en desktop, renderizar sin grid (una sola columna) para no dejar hueco.
+- Se conserva la lógica actual de reposts, favoritos, editar/eliminar y `showComments` state (el toggle se sigue usando en móvil; en desktop con media se fuerza `true` inicial).
+- No se tocan hooks, tipos, ni backend.
+- Los márgenes negativos actuales de la imagen en móvil (`-mx-4`) se mantienen solo bajo breakpoint móvil.
 
-- Idioma: todos los textos en español, coherente con el resto de la app.
-- Validación con `zod`, ya usado en `Auth.tsx`.
-- Toasts con `sonner`, igual que en el resto de la app.
-- No se requieren cambios de backend (Supabase gestiona el email de recuperación con la plantilla por defecto).
-- Nota al usuario: el email de recuperación se enviará con la plantilla por defecto de Lovable. Si quieren personalizar el diseño / dominio del email, sería un paso posterior (scaffold de plantillas de auth email + dominio propio).
+## Archivos modificados
+- `src/components/posts/ImageCarousel.tsx`
+- `src/components/posts/PostCard.tsx`
 
 ## Fuera de alcance
-
-- Personalización de la plantilla del email de recuperación.
-- Configuración de dominio de envío propio.
-- Cambio de flujo a OTP en vez de enlace mágico.
+- Cambios en el feed, filtros o backend.
+- Rediseño de la barra de acciones (íconos y estilos se mantienen).
+- Modo lightbox / zoom de imágenes.
