@@ -63,12 +63,14 @@ export default function PostDetail() {
         
         if (originalPost) {
           // Get stats for original post
-          const [{ data: origLikes }, { data: origComments }, { data: origFavorites }, { data: origReposts }] = await Promise.all([
+          const [{ data: origLikes }, { data: origComments }, { data: origFavStats }, { data: origReposts }] = await Promise.all([
             supabase.from('post_likes').select('user_id').eq('post_id', originalPost.id),
             supabase.from('comments').select('id').eq('post_id', originalPost.id),
-            supabase.from('post_favorites').select('user_id').eq('post_id', originalPost.id),
+            supabase.rpc('get_post_favorites_stats', { post_ids: [originalPost.id] }),
             supabase.from('posts').select('author_id').eq('repost_of_id', originalPost.id),
           ]);
+
+          const origFavRow = (origFavStats as Array<{ post_id: string; favorites_count: number; user_has_favorited: boolean }> | null)?.[0];
 
           repostOfData = {
             id: originalPost.id,
@@ -82,8 +84,8 @@ export default function PostDetail() {
             likes_count: origLikes?.length || 0,
             comments_count: origComments?.length || 0,
             user_has_liked: user ? origLikes?.some((l) => l.user_id === user.id) || false : false,
-            favorites_count: origFavorites?.length || 0,
-            user_has_favorited: user ? origFavorites?.some((f) => f.user_id === user.id) || false : false,
+            favorites_count: Number(origFavRow?.favorites_count) || 0,
+            user_has_favorited: !!origFavRow?.user_has_favorited,
             reposts_count: origReposts?.length || 0,
             user_has_reposted: user ? origReposts?.some((r) => r.author_id === user.id) || false : false,
             created_at: originalPost.created_at,
