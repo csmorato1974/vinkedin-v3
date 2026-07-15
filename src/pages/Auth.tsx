@@ -17,7 +17,9 @@ const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 c
 const nameSchema = z.string().min(2, 'El nombre debe tener al menos 2 caracteres');
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const isLogin = mode === 'login';
+  const isForgot = mode === 'forgot';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
