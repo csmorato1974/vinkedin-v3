@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 import type { Post } from '@/types';
 import { ImageCarousel } from './ImageCarousel';
