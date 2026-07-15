@@ -43,14 +43,22 @@ interface PostCardProps {
 export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdate }: PostCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [isFavoriteAnimating, setIsFavoriteAnimating] = useState(false);
   const [isRepostAnimating, setIsRepostAnimating] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
+  // Determine which content to display and which post ID to use for actions
+  const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
+  const actionPostId = displayPost.id;
+  const hasMedia = !!(displayPost.media_urls && displayPost.media_urls.length > 0);
+
+  // On desktop, show comments expanded by default when post has media
   const [showComments, setShowComments] = useState(false);
+
 
   // Determine which content to display and which post ID to use for actions
   const displayPost = post.type === 'repost' && post.repost_of ? post.repost_of : post;
