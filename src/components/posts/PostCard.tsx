@@ -125,6 +125,17 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
     }
   };
 
+  // Defense-in-depth: only render external links with safe protocols
+  const isSafeUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <>
       <motion.article
@@ -220,7 +231,7 @@ export function PostCard({ post, onLike, onFavorite, onRepost, onDelete, onUpdat
         )}
 
         {/* External link */}
-        {displayPost.external_url && (
+        {displayPost.external_url && isSafeUrl(displayPost.external_url) && (
           <a
             href={displayPost.external_url}
             target="_blank"

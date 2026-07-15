@@ -44,21 +44,37 @@ export function usePosts() {
       // Combine all post IDs we need stats for (including original posts of reposts)
       const allPostIds = [...new Set([...postIds, ...repostOfIds])];
       
-      const [{ data: likesData }, { data: commentsData }, { data: favoritesData }, { data: repostsData }, { data: originalPostsData }] = await Promise.all([
+      const [
+        { data: likesData },
+        { data: commentsData },
+        { data: favoritesStats },
+        { data: repostsData },
+        { data: originalPostsData },
+      ] = await Promise.all([
         supabase.from('post_likes').select('post_id, user_id').in('post_id', allPostIds),
         supabase.from('comments').select('post_id').in('post_id', allPostIds),
-        supabase.from('post_favorites').select('post_id, user_id').in('post_id', allPostIds),
+        // post_favorites SELECT is restricted to owners; use SECURITY DEFINER RPC
+        // that returns only aggregate counts + whether current user favorited.
+        supabase.rpc('get_post_favorites_stats', { post_ids: allPostIds }),
         supabase.from('posts').select('repost_of_id, author_id').in('repost_of_id', allPostIds),
         repostOfIds.length > 0 
           ? supabase.from('posts').select(`*, author:profiles!posts_author_id_fkey(*)`).in('id', repostOfIds)
           : Promise.resolve({ data: [] }),
       ]);
 
+      const favStatsMap = new Map<string, { favorites_count: number; user_has_favorited: boolean }>();
+      (favoritesStats as Array<{ post_id: string; favorites_count: number; user_has_favorited: boolean }> | null)?.forEach((row) => {
+        favStatsMap.set(row.post_id, {
+          favorites_count: Number(row.favorites_count) || 0,
+          user_has_favorited: !!row.user_has_favorited,
+        });
+      });
+
       // Build posts with counts
       const enrichedPosts: Post[] = postsData.map((post) => {
         const postLikes = likesData?.filter((l) => l.post_id === post.id) || [];
         const postComments = commentsData?.filter((c) => c.post_id === post.id) || [];
-        const postFavorites = favoritesData?.filter((f) => f.post_id === post.id) || [];
+        const postFavStats = favStatsMap.get(post.id) || { favorites_count: 0, user_has_favorited: false };
         const postReposts = repostsData?.filter((r) => r.repost_of_id === post.id) || [];
         
         // Find original post for reposts
@@ -68,7 +84,7 @@ export function usePosts() {
           if (originalPost) {
             const originalLikes = likesData?.filter((l) => l.post_id === originalPost.id) || [];
             const originalComments = commentsData?.filter((c) => c.post_id === originalPost.id) || [];
-            const originalFavorites = favoritesData?.filter((f) => f.post_id === originalPost.id) || [];
+            const originalFavStats = favStatsMap.get(originalPost.id) || { favorites_count: 0, user_has_favorited: false };
             const originalReposts = repostsData?.filter((r) => r.repost_of_id === originalPost.id) || [];
             
             repostOf = {
@@ -83,8 +99,8 @@ export function usePosts() {
               likes_count: originalLikes.length,
               comments_count: originalComments.length,
               user_has_liked: user ? originalLikes.some((l) => l.user_id === user.id) : false,
-              favorites_count: originalFavorites.length,
-              user_has_favorited: user ? originalFavorites.some((f) => f.user_id === user.id) : false,
+              favorites_count: originalFavStats.favorites_count,
+              user_has_favorited: originalFavStats.user_has_favorited,
               reposts_count: originalReposts.length,
               user_has_reposted: user ? originalReposts.some((r) => r.author_id === user.id) : false,
               created_at: originalPost.created_at,
